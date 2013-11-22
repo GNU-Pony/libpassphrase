@@ -64,6 +64,18 @@ char* passphrase_read(void)
 	break;
       if (c != 0)
         {
+#ifdef PASSPHRASE_STAR
+	  if ((c == 8) || (c == 127))
+	    {
+	      if (len == 0)
+		continue;
+	      printf("\033[D \033[D");
+	      fflush(stdout);
+	      *(rc + --len) = 0;
+	      continue;
+	    }
+	  putchar('*');
+#endif
 	  *(rc + len++) = c;
 	  if (len == size)
 	    if ((rc = realloc(rc, (size <<= 1L) * sizeof(char))) == NULL)
@@ -92,6 +104,9 @@ void passphrase_disable_echo(void)
   tcgetattr(STDIN_FILENO, &stty);
   saved_stty = stty;
   stty.c_lflag &= ~ECHO;
+#ifdef PASSPHRASE_STAR
+  stty.c_lflag &= ~ICANON;
+#endif
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
 #endif
 }
