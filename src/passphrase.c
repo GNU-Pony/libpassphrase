@@ -27,10 +27,12 @@
 #define START_PASSPHRASE_LIMIT  32
 
 
+#ifndef PASSPHRASE_ECHO
 /**
  * The original TTY settings
  */
 static struct termios saved_stty;
+#endif
 
 
 /**
@@ -72,7 +74,9 @@ char* passphrase_read(void)
   /* NUL-terminate passphrase */
   *(rc + len) = 0;
   
+#ifndef PASSPHRASE_ECHO
   printf("\n");
+#endif
   return rc;
 }
 
@@ -82,12 +86,14 @@ char* passphrase_read(void)
  */
 void passphrase_disable_echo(void)
 {
+#ifndef PASSPHRASE_ECHO
   struct termios stty;
   
   tcgetattr(STDIN_FILENO, &stty);
   saved_stty = stty;
   stty.c_lflag &= ~ECHO;
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
+#endif
 }
 
 
@@ -96,6 +102,8 @@ void passphrase_disable_echo(void)
  */
 void passphrase_reenable_echo(void)
 {
+#ifndef PASSPHRASE_ECHO
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
+#endif
 }
 

@@ -2,8 +2,11 @@ PREFIX = /usr
 LIB = /lib
 INCLUDE = /include
 
+OPTIONS = 
+# PASSPHRASE_ECHO: Do not hide the passphrase
+
 OPTIMISE = -Os
-CPPFLAGS = 
+CPPFLAGS = $(foreach D, $(OPTIONS), -D'$(D)=1')
 CFLAGS = -std=c90 -Wall -Wextra -fPIC
 LDFLAGS = -shared
 
