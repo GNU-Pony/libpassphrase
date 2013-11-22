@@ -21,8 +21,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #include "passphrase.h"
 
 
@@ -38,7 +36,7 @@ static struct termios saved_stty;
 /**
  * Reads the passphrase from stdin
  * 
- * @return  The passphrase, should be `free`:ed
+ * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
  */
 char* get_passphrase(void)
 {
@@ -52,11 +50,7 @@ char* get_passphrase(void)
   int c;
   
   if (rc == NULL)
-    {
-      perror("malloc");
-      sleep(ERROR_SLEEP);
-      _exit(1);
-    }
+    return NULL;
   
   /* Read password until EOF or Enter, skip all \0 as that
      is probably not a part of the passphrase (good luck typing
@@ -71,11 +65,7 @@ char* get_passphrase(void)
 	  *(rc + len++) = c;
 	  if (len == size)
 	    if ((rc = realloc(rc, (size <<= 1L) * sizeof(char))) == NULL)
-	      {
-		perror("realloc");
-		sleep(ERROR_SLEEP);
-		_exit(1);
-	      }
+	      return NULL;
 	}
     }
   

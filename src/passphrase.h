@@ -23,19 +23,19 @@
 /**
  * Reads the passphrase from stdin
  * 
- * @return  The passphrase, should be `free`:ed
+ * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
  */
-char* get_passphrase(void);
+extern char* get_passphrase(void);
 
 /**
  * Disable echoing and do anything else to the terminal settnings `get_passphrase` requires
  */
-void disable_echo(void);
+extern void disable_echo(void);
 
 /**
  * Undo the actions of `disable_echo`
  */
-void reenable_echo(void);
+extern void reenable_echo(void);
 
 
 #endif
