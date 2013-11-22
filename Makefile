@@ -3,8 +3,9 @@ LIB = /lib
 INCLUDE = /include
 
 OPTIONS = 
-# PASSPHRASE_ECHO: Do not hide the passphrase
-# PASSPHRASE_STAR: Use '*' for each character instead of no echo
+# PASSPHRASE_ECHO:    Do not hide the passphrase
+# PASSPHRASE_STAR:    Use '*' for each character instead of no echo
+# PASSPHRASE_REALLOC: Soften security by using `realloc`
 
 OPTIMISE = -Os
 CPPFLAGS = $(foreach D, $(OPTIONS), -D'$(D)=1')

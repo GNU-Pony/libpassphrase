@@ -78,8 +78,27 @@ char* passphrase_read(void)
 #endif
 	  *(rc + len++) = c;
 	  if (len == size)
-	    if ((rc = realloc(rc, (size <<= 1L) * sizeof(char))) == NULL)
-	      return NULL;
+	    {
+#ifndef PASSPHRASE_REALLOC
+	      char* rc_2 = malloc((size <<= 1L) * sizeof(char));
+	      int i;
+	      if (rc_2)
+		{
+		  for (i = 0; i < len; i++)
+		    *(rc_2 + i) = *(rc + i);
+		}
+	      for (i = 0; i < len; i++)
+		*(rc + i) = 0;
+	      free(rc);
+	      if (rc_2 == NULL)
+		return rc_2;
+	      rc = rc_2;
+#else
+	      rc = realloc(rc, (size <<= 1L) * sizeof(char));
+	      if (rc == NULL)
+		return NULL;
+#endif
+	    }
 	}
     }
   
