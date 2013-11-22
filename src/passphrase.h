@@ -25,17 +25,17 @@
  * 
  * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
  */
-extern char* get_passphrase(void);
+extern char* passphrase_read(void);
 
 /**
- * Disable echoing and do anything else to the terminal settnings `get_passphrase` requires
+ * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
-extern void disable_echo(void);
+extern void passphrase_disable_echo(void);
 
 /**
- * Undo the actions of `disable_echo`
+ * Undo the actions of `passphrase_disable_echo`
  */
-extern void reenable_echo(void);
+extern void passphrase_reenable_echo(void);
 
 
 #endif

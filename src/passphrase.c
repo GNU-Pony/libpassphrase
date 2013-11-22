@@ -38,7 +38,7 @@ static struct termios saved_stty;
  * 
  * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
  */
-char* get_passphrase(void)
+char* passphrase_read(void)
 {
   /* malloc and realloc returns NULL if we run out of memory,
      we will not do that under normal usecases, if we do, it
@@ -78,9 +78,9 @@ char* get_passphrase(void)
 
 
 /**
- * Disable echoing and do anything else to the terminal settnings `get_passphrase` requires
+ * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
-void disable_echo(void)
+void passphrase_disable_echo(void)
 {
   struct termios stty;
   
@@ -92,9 +92,9 @@ void disable_echo(void)
 
 
 /**
- * Undo the actions of `disable_echo`
+ * Undo the actions of `passphrase_disable_echo`
  */
-void reenable_echo(void)
+void passphrase_reenable_echo(void)
 {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
 }
