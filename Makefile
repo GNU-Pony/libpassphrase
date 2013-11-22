@@ -1,3 +1,7 @@
+PREFIX = /usr
+LIB = /lib
+INCLUDE = /include
+
 OPTIMISE = -Os
 CPPFLAGS = 
 CFLAGS = -std=c90 -Wall -Wextra -fPIC
@@ -21,6 +25,20 @@ bin/libpassphrase.so: $(OBJ)
 obj/%.o: src/%.c src/%.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<"
+
+
+.PHONY: install
+install: bin/libpassphrase.so
+	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LIB)"
+	install -dm755 -- "$(DESTDIR)$(PREFIX)$(INCLUDE)"
+	install -m755 -- bin/libpassphrase.so "$(DESTDIR)$(PREFIX)$(LIB)"
+	install -m755 -- src/passphrase.h "$(DESTDIR)$(PREFIX)$(INCLUDE)"
+
+
+.PHONY: uninstall
+uninstall:
+	-rm -- "$(DESTDIR)$(PREFIX)$(LIB)/libpassphrase.so"
+	-rm -- "$(DESTDIR)$(PREFIX)$(INCLUDE)/passphrase.h"
 
 
 .PHONY: clean
