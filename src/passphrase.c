@@ -42,10 +42,6 @@ static struct termios saved_stty;
  */
 char* passphrase_read(void)
 {
-  /* malloc and realloc returns NULL if we run out of memory,
-     we will not do that under normal usecases, if we do, it
-     okay to segfault on null derefencing and quit on that. */
-  
   char* rc = malloc(START_PASSPHRASE_LIMIT * sizeof(char));
   long size = START_PASSPHRASE_LIMIT;
   long len = 0;
