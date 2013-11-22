@@ -1,5 +1,5 @@
 /**
- * cerberus – Minimal login program
+ * libpassphrase – Personalisable library for TTY passphrase reading
  * 
  * Copyright © 2013  Mattias Andrée (maandree@member.fsf.org)
  * 
