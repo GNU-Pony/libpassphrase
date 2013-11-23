@@ -35,6 +35,28 @@ static struct termios saved_stty;
 #endif
 
 
+#ifndef PASSPHRASE_REALLOC
+static inline char* xrealloc(char* array, size_t size)
+{
+  char* rc = malloc(size);
+  int i;
+  if (rc)
+    for (i = 0; *(array + i); i++)
+      {
+	*(rc + i) = *(array + i);
+	*(array + i) = 0;
+      }
+  else
+    for (i = 0; *(array + i); i++)
+      *(array + i) = 0;
+  free(array);
+  return rc;
+}
+#else
+#define  xrealloc  realloc
+#endif
+
+
 /**
  * Reads the passphrase from stdin
  * 
@@ -74,27 +96,8 @@ char* passphrase_read(void)
 #endif
 	  *(rc + len++) = c;
 	  if (len == size)
-	    {
-#ifndef PASSPHRASE_REALLOC
-	      char* rc_2 = malloc((size <<= 1L) * sizeof(char));
-	      int i;
-	      if (rc_2)
-		{
-		  for (i = 0; i < len; i++)
-		    *(rc_2 + i) = *(rc + i);
-		}
-	      for (i = 0; i < len; i++)
-		*(rc + i) = 0;
-	      free(rc);
-	      if (rc_2 == NULL)
-		return rc_2;
-	      rc = rc_2;
-#else
-	      rc = realloc(rc, (size <<= 1L) * sizeof(char));
-	      if (rc == NULL)
-		return NULL;
-#endif
-	    }
+	    if ((rc = xrealloc(rc, (size <<= 1L) * sizeof(char))) == NULL)
+	      return rc;
 	}
     }
   
