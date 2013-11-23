@@ -70,7 +70,7 @@ static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
 #  elif defined(PASSPHRASE_ECHO)
 #    define xputchar(C)  putchar(C)
 #  else
-#    define xputchar(C)  /* be silent */
+#    define xputchar(C)  ({ /* be silent */ })
 #  endif
 #endif
 
@@ -167,8 +167,11 @@ char* passphrase_read(void)
 		if (insert)
 #endif
 		  {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wempty-body"
 		    if ((c & 0xC0) != 0x80)
 		      xprintf("\033[@");
+#pragma GCC diagnostic pop
 		    xputchar(c);
 		    for (i = point; i < len; i++)
 		      *(rc + i + 1) = *(rc + i);
@@ -269,7 +272,7 @@ char* passphrase_read(void)
 	    }
 	  else if ((cc == -7) && point) /* left */
 	    {
-	      char redo = 1
+	      char redo = 1;
 	      xprintf("\033[D");
 	      while (redo)
 		redo = (*(rc + point--) & 0xC0) == 0x80;
