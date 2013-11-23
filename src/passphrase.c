@@ -57,6 +57,9 @@ static inline char* xrealloc(char* array, size_t size)
 #endif
 
 
+#define xprintf(...)  ({ printf(__VA_ARGS__); fflush(stdout); })
+
+
 /**
  * Reads the passphrase from stdin
  * 
@@ -87,8 +90,7 @@ char* passphrase_read(void)
 	    {
 	      if (len == 0)
 		continue;
-	      printf("\033[D \033[D");
-	      fflush(stdout);
+	      xprintf("\033[D \033[D");
 	      *(rc + --len) = 0;
 	      continue;
 	    }

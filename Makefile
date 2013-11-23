@@ -9,7 +9,7 @@ OPTIONS =
 
 OPTIMISE = -Os
 CPPFLAGS = $(foreach D, $(OPTIONS), -D'$(D)=1')
-CFLAGS = -std=c99 -Wall -Wextra -fPIC
+CFLAGS = -std=gnu99 -Wall -Wextra -fPIC
 LDFLAGS = -shared
 
 CC_FLAGS = $(CPPFLAGS) $(CFLAGS) $(OPTIMISE)
