@@ -3,9 +3,17 @@ LIB = /lib
 INCLUDE = /include
 
 OPTIONS = 
-# PASSPHRASE_ECHO:    Do not hide the passphrase
-# PASSPHRASE_STAR:    Use '*' for each character instead of no echo
-# PASSPHRASE_REALLOC: Soften security by using `realloc`
+# PASSPHRASE_ECHO:      Do not hide the passphrase
+# PASSPHRASE_STAR:      Use '*' for each character instead of no echo
+# PASSPHRASE_REALLOC:   Soften security by using `realloc`
+# PASSPHRASE_MOVE:      Enable move of point
+# PASSPHRASE_INSERT:    Enable insert mode
+# PASSPHRASE_OVERRIDE:  Enable override mode
+# PASSPHRASE_DELETE:    Enable reversed erase command
+# PASSPHRASE_CONTROL:   Enable use of control key combinations
+# PASSPHRASE_DEDICATED: Enable use of dedicated keys
+# DEFAULT_INSERT:       Use insert mode as default
+# PASSPHRASE_INVALID:   Prevent duplication of non-initialised memory
 
 OPTIMISE = -Os
 CPPFLAGS = $(foreach D, $(OPTIONS), -D'$(D)=1')
