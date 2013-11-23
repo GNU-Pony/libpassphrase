@@ -160,6 +160,7 @@ char* passphrase_read(void)
 		{
 		  xputchar(c);
 		  *(rc + len++) = c;
+		  point++;
 		}
 #ifdef PASSPHRASE_INSERT
 	      else
@@ -167,14 +168,11 @@ char* passphrase_read(void)
 		if (insert)
 #endif
 		  {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wempty-body"
 		    if ((c & 0xC0) != 0x80)
-		      xprintf("\033[@");
-#pragma GCC diagnostic pop
+		      { xprintf("\033[@"); }
 		    xputchar(c);
-		    for (i = point; i < len; i++)
-		      *(rc + i + 1) = *(rc + i);
+		    for (i = len; i > point; i--)
+		      *(rc + i) = *(rc + i - 1);
 		    len++;
 		    *(rc + point++) = c;
 		  }
@@ -184,12 +182,12 @@ char* passphrase_read(void)
 		  {
 		    long n = 1;
 		    char cn = c;
-		    while (*(rc + point + n))
+		    while ((*(rc + point + n) & 0xC0) == 0x80)
 		      n++;
-		    for (i = point; i < len; i++)
-		      *(rc + i) = *(rc + i + n);
+		    for (i = point + n; i < len; i++)
+		      *(rc + i - n) = *(rc + i);
 		    for (i = len - n; i < len; i++)
-		      *(rc + point + i) = 0;
+		      *(rc + i) = 0;
 		    len -= n;
 		    n = 0;
 		    while (cn & 0x80)
@@ -204,9 +202,9 @@ char* passphrase_read(void)
 			  return NULL;
 			size <<= 1L;
 		      }
-		    for (i = point; i < len; i++)
-		      *(rc + i + n) = *(rc + i);
 		    len += n;
+		    for (i = len - 1; i >= point + n; i--)
+		      *(rc + i) = *(rc + i - n);
 		    for (i = 0; i < n; i++)
 		      {
 			if (i)
@@ -219,7 +217,11 @@ char* passphrase_read(void)
 	    }
 	  else if ((cc == -1) && point) /* home */
 	    {
-	      xprintf("\033[%liD", point);
+	      long n = 0;
+	      for (i = 0; i < point; i++)
+		if ((*(rc + i) & 0xC0) != 0x80)
+		  n++;
+	      xprintf("\033[%liD", n);
 	      point = 0;
 	    }
 #if defined(PASSPHRASE_INSERT) && defined(PASSPHRASE_OVERRIDE)
@@ -244,7 +246,11 @@ char* passphrase_read(void)
 #endif
 	  else if ((cc == -4) && (len != point)) /* end */
 	    {
-	      xprintf("\033[%liC", len - point);
+	      long n = 0;
+	      for (i = point; i < len; i++)
+		if ((*(rc + i) & 0xC0) != 0x80)
+		  n++;
+	      xprintf("\033[%liC", n);
 	      point = len;
 	    }
 	  else if ((cc == -5) && point) /* erase */
@@ -256,7 +262,7 @@ char* passphrase_read(void)
 #endif
 	      while (redo)
 		{
-		  redo = (*(rc + point) & 0xC0) == 0x80;
+		  redo = (*(rc + point - 1) & 0xC0) == 0x80;
 		  for (i = point; i <= len; i++)
 		    *(rc + i - 1) = *(rc + i);
 		  point--;
@@ -272,10 +278,10 @@ char* passphrase_read(void)
 	    }
 	  else if ((cc == -7) && point) /* left */
 	    {
-	      char redo = 1;
 	      xprintf("\033[D");
-	      while (redo)
-		redo = (*(rc + point--) & 0xC0) == 0x80;
+	      point--;
+	      while (point && ((*(rc + point) & 0xC0) == 0x80))
+	        point--;
 	    }
 	  
 #elif defined(PASSPHRASE_STAR)
@@ -286,7 +292,11 @@ char* passphrase_read(void)
 	      xprintf("\033[D \033[D");
 	      xflush();
 	      *(rc + --len) = 0;
+#ifdef DEBUG
+	      goto debug;
+#else
 	      continue;
+#endif
 	    }
 	  if ((c & 0xC0) != 0x80)
 	    putchar('*');
@@ -302,6 +312,24 @@ char* passphrase_read(void)
 		return NULL;
 	      size <<= 1L;
 	    }
+
+#ifdef DEBUG
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
+	debug:
+	  {
+	    long n = 0;
+	    for (i = point; i < len; i++)
+	      if ((*(rc + i) & 0xC0) != 0x80)
+		n++;
+	    *(rc + len) = 0;
+	    if (n)
+	      printf("\033[s\033[H\033[K%s\033[%liD\033[01;34m%s\033[00m\033[u", rc, n, rc + point);
+	    else
+	      printf("\033[s\033[H\033[K%s\033[01;34m%s\033[00m\033[u", rc, rc + point);
+	    fflush(stdout);
+	  }
+#endif
 	}
     }
   
