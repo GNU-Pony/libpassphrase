@@ -52,6 +52,7 @@ Texts. A copy of the license is included in the section entitled
 @menu
 * Overview::                        Brief overview of libpassphrase.
 * Advanced Programming Interface::  How to take advantage of libpassphrase in your application.
+* Configuring libpassphrase::       How to configure libpassphrase.
 * GNU Free Documentation License::  Copying and sharing this manual.
 @end menu
 
@@ -83,11 +84,16 @@ or write your own replacement.
 * Example::   Example of how to use libpassphrase
 @end menu
 
+
 To use libpassphrase, add the option @option{-lpassphrase}
 to the linker. In other words add @option{-lpassphrase} to
 the arguments when invoking GCC @footnote{Or your compile
 or choice.}, when it creates an executable
 file.
+
+libpassphrase should be dynamically linked as static
+linking would require recompilation of the program
+and not just libpassphrase to reconfigure libpassphrase.
 
 Include the system header file @file{passphrase.h}, in the
 file you want to use libpassphrase.
@@ -98,6 +104,7 @@ file you want to use libpassphrase.
 Including @file{passphrase.h} gives you three functions:
 
 @table @code
+
 @item  void passphrase_disable_echo(void)
 Invoking @code{passphrase_disable_echo} will hide
 the user input in the terminal (unless passphrase
@@ -184,6 +191,120 @@ int main(int argc, char** argv)
 @}
 @end example
 
+
+
+@node Configuring libpassphrase
+@chapter Configuring libpassphrase
+
+libpassphrase is configured at compile time.
+Its makefile contains the variable @var{OPTIONS}
+which is composed of the definitions you want
+to add to the C preprocessor when compiling
+libpassphrase. The definitions are blank space
+separated, for example
+@command{make OPTIONS="PASSPHRASE_STAR PASSPHRASE_REALLOC"}
+will compile libpassphrase with the options
+@code{PASSPHRASE_STAR} and @code{PASSPHRASE_REALLOC}.
+
+The following options are defined:
+
+@table @asis
+
+@item @code{PASSPHRASE_ECHO}
+Do not hide the passphrase.
+
+@item @code{PASSPHRASE_STAR} @footnote{May not be combined with @code{PASSPHRASE_ECHO}.}
+Use '*' for each character instead of disabling echoing.
+
+@item @code{PASSPHRASE_REALLOC}
+Soften security by using @code{realloc} instead of
+using @code{malloc} and wiping the passphrase from
+the old allocation after duplicating it.
+
+@item @code{PASSPHRASE_MOVE}
+Add the possibilty to move the point (cursor),
+even if the passphrase is hidden this is usable.
+
+If using this options you should use at
+least one of @code{PASSPHRASE_INSERT} and
+@code{PASSPHRASE_OVERRIDE}, and at least
+on of @code{PASSPHRASE_CONTROL} and
+@code{PASSPHRASE_DEDICATED}.
+
+Provided that all options that requires
+@code{PASSPHRASE_MOVE} are used, the
+following key combinations are recognised:
+
+@table @kbd
+
+@item <left>
+@itemx C-b
+Move the point one step to the left.
+
+@item <right>
+@itemx C-f
+Move the point one step to the right.
+
+@item <home>
+@itemx C-a
+Move the point to the beginning of the passphrase.
+
+@item <end>
+@itemx C-e
+Move the point to the end of the passphrase.
+
+@item backspace
+@itemx C-h
+Erase the letter before the point.
+
+@item <delete>
+@itemx C-d
+Reverse erase: erase the letter at the point.
+
+@item <insert>
+Switch between insert mode and override mode.
+
+@end table
+
+@item @code{PASSPHRASE_INSERT} @footnote{Requires @code{PASSPHRASE_MOVE}.}
+Enable insert mode.
+
+@item @code{PASSPHRASE_OVERRIDE} @footnote{Requires @code{PASSPHRASE_MOVE}.}
+Enable override mode.
+
+@item @code{PASSPHRASE_DELETE} @footnote{Requires @code{PASSPHRASE_MOVE}.}
+Enable reversed erase command.
+
+@item @code{PASSPHRASE_CONTROL} @footnote{Requires @code{PASSPHRASE_MOVE}.}
+Enable use of key combinations using the
+control modifier.
+
+@item @code{PASSPHRASE_DEDICATED} @footnote{Requires @code{PASSPHRASE_MOVE}.}
+Enable use of keys with specific purpose,
+such as the Delete key and the arrow keys.
+
+@item @code{DEFAULT_INSERT} @footnote{Requires @code{PASSPHRASE_INSERT} and @code{PASSPHRASE_OVERRIDE}.}
+Use insert mode and not override mode as default.
+It is toggleable with the Insert key if
+@code{PASSPHRASE_DEDICATED} is used.
+
+@item @code{PASSPHRASE_INVALID}
+Prevent duplication of non-initialised memory.
+
+Only allocated memory will be duplication,
+but at the end of the passphrase allocation
+non-initialised memory can be read. Adding
+@code{PASSPHRASE_INVALID} ensures that all
+read memory is initialised by NUL-terminating
+the passphrase before it is completed when
+it is possible that non-initialised memory
+is about to be read.
+
+This options is not really needed, but not
+using it means that you can get warnings
+in @command{valgrind}.
+
+@end table
 
 
 
