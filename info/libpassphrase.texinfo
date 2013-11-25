@@ -51,6 +51,7 @@ Texts. A copy of the license is included in the section entitled
 
 @menu
 * Overview::                        Brief overview of libpassphrase.
+* Advanced Programming Interface::  How to take advantage of libpassphrase in your application.
 * GNU Free Documentation License::  Copying and sharing this manual.
 @end menu
 
@@ -58,6 +59,131 @@ Texts. A copy of the license is included in the section entitled
 
 @node Overview
 @chapter Overview
+
+libpassphrase is a small C library for reading passphrases from
+the terminal via the standard input channel. The purpose of
+libpassphrase is to provide a way to personalise the behaviour
+in the terminal when applications that takes advantage of
+libpassphrase reads a passphrase.
+
+Among other configurations, you can configure libpassphrase to
+print asterisks instead of disabling echoing.
+
+libpassphrase's advanced programming interface is very small
+and simple, if libpassphrase cannot do exactly what you want,
+you can either modify the source code to do what it you want
+or write your own replacement.
+
+
+
+@node Advanced Programming Interface
+@chapter Advanced Programming Interface
+
+@menu
+* Example::   Example of how to use libpassphrase
+@end menu
+
+To use libpassphrase, add the option @option{-lpassphrase}
+to the linker. In other words add @option{-lpassphrase} to
+the arguments when invoking GCC @footnote{Or your compile
+or choice.}, when it creates an executable
+file.
+
+Include the system header file @file{passphrase.h}, in the
+file you want to use libpassphrase.
+
+@file{passphrase.h} uses the inclusion guard
+@code{__PASSPHRASE_H__}.
+
+Including @file{passphrase.h} gives you three functions:
+
+@table @code
+@item  void passphrase_disable_echo(void)
+Invoking @code{passphrase_disable_echo} will hide
+the user input in the terminal (unless passphrase
+hiding is diabled). This is the first thing you
+should call.
+
+@item  char* passphrase_read(void)
+@code{passphrase_read} reads the passphrase
+from standard input. On error @code{NULL}
+will be returned, otherwise a NUL-terminated
+passphrase will be returned.
+
+When you are done with the returned passphrase
+you should wipe it and free it.
+
+@item  void passphrase_reenable_echo(void)
+When you have read the passphrase you should
+invoke @code{passphrase_reenable_echo}. It will
+revert all settings to the terminal made by
+@code{passphrase_disable_echo}. If you have
+made settings changes to the terminal after
+@code{passphrase_reenable_echo} but before
+@code{passphrase_disable_echo}, those change
+may be lost as @code{passphrase_disable_echo}
+saves all settings before changing them and
+@code{passphrase_reenable_echo} applies to
+saved settings.
+
+@end table
+
+These three functions could be made into one
+function, it is however separated so that you
+can hide the passphrase earlier than you can
+read the passphrase, to minimise the risk that
+the user starts typing before the echoing has
+been disabled.
+
+
+@node Example
+@section Example
+
+@example
+#include <passphrase.h>  /* For libpassphrase */
+#include <stdio.h>       /* For output        */
+
+int main(int argc, char** argv)
+@{
+  /* Variables for the passphrase */
+  char* passphrase, passphrase_;
+  
+  /* Hide the passphrase */
+  passphrase_disable_echo();
+  
+  /* Do things needed before reading the passphrase */
+  printf("Passphrase: ");
+  fflush(stdout);
+  
+  /* Read the passphrase */
+  passphrase = passphrase_read();
+  if (passphrase == NULL)
+   @{
+    /* Something went wrong, print what and exit */
+    perror(*argv);
+    return 1;
+   @}
+  
+  /* Use the passphrase */
+  printf("You entered: %s\n", passphrase);
+  
+  /* Wipe and free the passphrase */
+  passphrase_ = passphrase;
+  while (*passphrase)
+    *passphrase++ = 0;
+  free(passphrase_);
+  
+  /* Stop hiding user input */
+  passphrase_reenable_echo();
+  
+  /* End of program */
+  return 0;
+  
+  /* `argc` was never used */
+  (void) argc;
+@}
+@end example
+
 
 
 
