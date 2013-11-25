@@ -1,6 +1,9 @@
 PREFIX = /usr
 LIB = /lib
+DATA = /share
 INCLUDE = /include
+LICENSES = $(DATA)/licenses
+PKGNAME = libpassphrase
 
 OPTIONS = 
 # PASSPHRASE_ECHO:      Do not hide the passphrase
@@ -28,8 +31,11 @@ OBJ = $(foreach S, $(SRC), obj/$(S).o)
 
 
 .PHONY: all
-all: bin/libpassphrase.so
+all: libpassphrase doc
 
+
+.PHONY: libpassphrase
+libpassphrase: bin/libpassphrase.so
 
 bin/libpassphrase.so: $(OBJ)
 	@mkdir -p bin
@@ -40,21 +46,42 @@ obj/%.o: src/%.c src/%.h
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<"
 
 
+.PHONY: doc
+doc: info
+
+.PHONY: info
+info: libpassphrase.info.gz
+
+%.info: info/%.texinfo
+	makeinfo "$<"
+
+%.gz: %
+	gzip -9 < "$<" > "$@"
+
+
 .PHONY: install
 install: bin/libpassphrase.so
 	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LIB)"
 	install -dm755 -- "$(DESTDIR)$(PREFIX)$(INCLUDE)"
-	install -m755 -- bin/libpassphrase.so "$(DESTDIR)$(PREFIX)$(LIB)"
-	install -m755 -- src/passphrase.h "$(DESTDIR)$(PREFIX)$(INCLUDE)"
+	install  -m755 -- bin/libpassphrase.so "$(DESTDIR)$(PREFIX)$(LIB)"
+	install  -m755 -- src/passphrase.h "$(DESTDIR)$(PREFIX)$(INCLUDE)"
+	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
+	install  -m644 -- COPYING LICENSE "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
+	install -dm755 -- "$(DESTDIR)$(PREFIX)$(DATA)/info"
+	install  -m644 -- libpassphrase.info.gz "$(DESTDIR)$(PREFIX)$(DATA)/info/$(PKGNAME).info.gz"
 
 
 .PHONY: uninstall
 uninstall:
 	-rm -- "$(DESTDIR)$(PREFIX)$(LIB)/libpassphrase.so"
 	-rm -- "$(DESTDIR)$(PREFIX)$(INCLUDE)/passphrase.h"
+	-rm -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)/COPYING"
+	-rm -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)/LICENSE"
+	-rmdir -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
+	-rm -- "$(DESTDIR)$(PREFIX)$(DATA)/info/$(PKGNAME).info.gz"
 
 
 .PHONY: clean
 clean:
-	-rm -r bin obj
+	-rm -r bin obj libpassphrase.info.gz
 
