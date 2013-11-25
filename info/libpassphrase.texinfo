@@ -214,7 +214,7 @@ The following options are defined:
 Do not hide the passphrase.
 
 @item @code{PASSPHRASE_STAR} @footnote{May not be combined with @code{PASSPHRASE_ECHO}.}
-Use '*' for each character instead of disabling echoing.
+Use `*' for each character instead of disabling echoing.
 
 @item @code{PASSPHRASE_REALLOC}
 Soften security by using @code{realloc} instead of
