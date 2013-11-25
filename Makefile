@@ -60,7 +60,7 @@ info: libpassphrase.info.gz
 
 
 .PHONY: install
-install: bin/libpassphrase.so
+install: bin/libpassphrase.so libpassphrase.info.gz
 	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LIB)"
 	install -dm755 -- "$(DESTDIR)$(PREFIX)$(INCLUDE)"
 	install  -m755 -- bin/libpassphrase.so "$(DESTDIR)$(PREFIX)$(LIB)"
