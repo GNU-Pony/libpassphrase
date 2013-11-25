@@ -66,7 +66,7 @@ static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
 
 #ifdef PASSPHRASE_MOVE
 #  if defined(PASSPHRASE_STAR)
-#    define xputchar(C)  ({ if ((c & 0xC0) != 0x80)  putchar('*'); })
+#    define xputchar(C)  ({ if ((C & 0xC0) != 0x80)  putchar('*'); })
 #  elif defined(PASSPHRASE_ECHO)
 #    define xputchar(C)  putchar(C)
 #  else
