@@ -149,11 +149,13 @@ been disabled.
 @example
 #include <passphrase.h>  /* For libpassphrase */
 #include <stdio.h>       /* For output        */
+#include <stdlib.h>      /* For free          */
 
 int main(int argc, char** argv)
 @{
   /* Variables for the passphrase */
-  char* passphrase, passphrase_;
+  char* passphrase;
+  char* passphrase_;
   
   /* Hide the passphrase */
   passphrase_disable_echo();

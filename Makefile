@@ -57,24 +57,24 @@ STD = gnu99
 # C preprocessor flags
 CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(CPPFLAGS)
 # C compiling flags
-CFLAGS_ = -std=$(STD) $(WARN) -fPIC $(CFLAGS)
+_fPIC = -fPIC
+CFLAGS_ = -std=$(STD) $(WARN) $(_fPIC) $(CFLAGS)
 # Linking flags
-LDFLAGS_ = -shared $(LDFLAGS)
+_shared = -shared
+LDFLAGS_ = $(_shared) $(LDFLAGS)
 
 # Flags to use when compiling and assembling
 CC_FLAGS = $(CPPFLAGS_) $(CFLAGS_) $(OPTIMISE)
 # Flags to use when linking
 LD_FLAGS = $(LDFLAGS_) $(CFLAGS_) $(OPTIMISE)
 
-SRC = passphrase
-OBJ = $(foreach S, $(SRC), obj/$(S).o)
 
 
 .PHONY: default
 default: libpassphrase info
 
 .PHONY: all
-all: libpassphrase doc
+all: libpassphrase test doc
 
 .PHONY: doc
 doc: info pdf ps dvi
@@ -82,7 +82,14 @@ doc: info pdf ps dvi
 .PHONY: libpassphrase
 libpassphrase: bin/libpassphrase.so
 
-bin/libpassphrase.so: $(OBJ)
+.PHONY: test
+test: bin/test
+
+bin/libpassphrase.so: obj/passphrase.o
+	@mkdir -p bin
+	$(CC) $(LD_FLAGS) -o "$@" $^
+
+bin/test: obj/passphrase.o obj/test.o
 	@mkdir -p bin
 	$(CC) $(LD_FLAGS) -o "$@" $^
 

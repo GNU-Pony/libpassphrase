@@ -16,26 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef PASSPHRASE_H
-#define PASSPHRASE_H
+#ifndef TEST_H
+#define TEST_H
 
 
-/**
- * Reads the passphrase from stdin
- * 
- * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
- */
-extern char* passphrase_read(void);
+#include <stdio.h>
+#include <stdlib.h>
 
-/**
- * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
- */
-extern void passphrase_disable_echo(void);
-
-/**
- * Undo the actions of `passphrase_disable_echo`
- */
-extern void passphrase_reenable_echo(void);
+#include "passphrase.h"
 
 
 #endif
