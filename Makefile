@@ -1,11 +1,35 @@
-PREFIX = /usr
-LIB = /lib
-DATA = /share
-INCLUDE = /include
-LICENSES = $(DATA)/licenses
-PKGNAME = libpassphrase
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
 
-OPTIONS = 
+
+# The package path prefix, if you want to install to another root, set DESTDIR to that root
+PREFIX ?= /usr
+# The library path excluding prefix
+LIB ?= /lib
+# The resource path excluding prefix
+DATA ?= /share
+# The library header path excluding prefix
+INCLUDE ?= /include
+# The library path including prefix
+LIBDIR ?= $(PREFIX)$(LIB)
+# The resource path including prefix
+DATADIR ?= $(PREFIX)$(DATA)
+# The library header path including prefix
+INCLUDEDIR ?= $(PREFIX)$(INCLUDE)
+# The generic documentation path including prefix
+DOCDIR ?= $(DATADIR)/doc
+# The info manual documentation path including prefix
+INFODIR ?= $(DATADIR)/info
+# The license base path including prefix
+LICENSEDIR ?= $(DATADIR)/licenses
+
+# The name of the package as it should be installed
+PKGNAME ?= libpassphrase
+
+# Options with which to compile the library
+OPTIONS ?= 
 # PASSPHRASE_ECHO:      Do not hide the passphrase
 # PASSPHRASE_STAR:      Use '*' for each character instead of no echo
 # PASSPHRASE_REALLOC:   Soften security by using `realloc`
@@ -18,21 +42,42 @@ OPTIONS =
 # DEFAULT_INSERT:       Use insert mode as default
 # PASSPHRASE_INVALID:   Prevent duplication of non-initialised memory
 
-OPTIMISE = -Os
-CPPFLAGS = $(foreach D, $(OPTIONS), -D'$(D)=1')
-CFLAGS = -std=gnu99 -Wall -Wextra -fPIC
-LDFLAGS = -shared
 
-CC_FLAGS = $(CPPFLAGS) $(CFLAGS) $(OPTIMISE)
-LD_FLAGS = $(LDFLAGS) $(CFLAGS) $(OPTIMISE)
+# Optimisation settings for C code compilation
+OPTIMISE ?= -Os
+# Warnings settings for C code compilation
+WARN = -Wall -Wextra -pedantic -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include-dirs \
+       -Wfloat-equal -Wmissing-prototypes -Wmissing-declarations -Wtrampolines -Wnested-externs \
+       -Wno-variadic-macros -Wdeclaration-after-statement -Wundef -Wpacked -Wunsafe-loop-optimizations \
+       -Wbad-function-cast -Wwrite-strings -Wlogical-op -Wstrict-prototypes -Wold-style-definition \
+       -Wvector-operation-performance -Wstack-protector -Wunsuffixed-float-constants -Wcast-align \
+       -Wsync-nand -Wshadow -Wredundant-decls -Winline -Wcast-qual -Wsign-conversion -Wstrict-overflow
+# The C standard for C code compilation
+STD = gnu99
+# C preprocessor flags
+CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(CPPFLAGS)
+# C compiling flags
+CFLAGS_ = -std=$(STD) $(WARN) -fPIC $(CFLAGS)
+# Linking flags
+LDFLAGS_ = -shared $(LDFLAGS)
+
+# Flags to use when compiling and assembling
+CC_FLAGS = $(CPPFLAGS_) $(CFLAGS_) $(OPTIMISE)
+# Flags to use when linking
+LD_FLAGS = $(LDFLAGS_) $(CFLAGS_) $(OPTIMISE)
 
 SRC = passphrase
 OBJ = $(foreach S, $(SRC), obj/$(S).o)
 
 
+.PHONY: default
+default: libpassphrase info
+
 .PHONY: all
 all: libpassphrase doc
 
+.PHONY: doc
+doc: info pdf ps dvi
 
 .PHONY: libpassphrase
 libpassphrase: bin/libpassphrase.so
@@ -45,43 +90,92 @@ obj/%.o: src/%.c src/%.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<"
 
-
-.PHONY: doc
-doc: info
-
 .PHONY: info
-info: libpassphrase.info.gz
-
+info: libpassphrase.info
 %.info: info/%.texinfo
 	makeinfo "$<"
 
-%.gz: %
-	gzip -9 < "$<" > "$@"
+.PHONY: pdf
+pdf: libpassphrase.pdf
+%.pdf: info/%.texinfo info/fdl.texinfo
+	mkdir -p obj
+	cd obj ; yes X | texi2pdf ../$<
+	mv obj/$@ $@
+
+.PHONY: dvi
+dvi: libpassphrase.dvi
+%.dvi: info/%.texinfo info/fdl.texinfo
+	mkdir -p obj
+	cd obj ; yes X | $(TEXI2DVI) ../$<
+	mv obj/$@ $@
+
+.PHONY: ps
+ps: libpassphrase.ps
+%.ps: info/%.texinfo info/fdl.texinfo
+	mkdir -p obj
+	cd obj ; yes X | texi2pdf --ps ../$<
+	mv obj/$@ $@
 
 
 .PHONY: install
-install: bin/libpassphrase.so libpassphrase.info.gz
-	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LIB)"
-	install -dm755 -- "$(DESTDIR)$(PREFIX)$(INCLUDE)"
-	install  -m755 -- bin/libpassphrase.so "$(DESTDIR)$(PREFIX)$(LIB)"
-	install  -m755 -- src/passphrase.h "$(DESTDIR)$(PREFIX)$(INCLUDE)"
-	install -dm755 -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
-	install  -m644 -- COPYING LICENSE "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
-	install -dm755 -- "$(DESTDIR)$(PREFIX)$(DATA)/info"
-	install  -m644 -- libpassphrase.info.gz "$(DESTDIR)$(PREFIX)$(DATA)/info/$(PKGNAME).info.gz"
+install: install-base install-info
+
+.PHONY: install
+install-all: install-base install-doc
+
+.PHONY: install-base
+install-base: install-lib install-license
+
+.PHONY: install-lib
+install-lib: bin/libpassphrase.so libpassphrase.info
+	install -dm755 -- "$(DESTDIR)$(LIBDIR)"
+	install -dm755 -- "$(DESTDIR)$(INCLUDEDIR)"
+	install  -m755 -- bin/libpassphrase.so "$(DESTDIR)$(LIBDIR)"
+	install  -m755 -- src/passphrase.h "$(DESTDIR)$(INCLUDEDIR)"
+
+.PHONY: install-license
+install-license:
+	install -dm755 -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
+	install  -m644 -- COPYING LICENSE "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
+
+.PHONY: install-doc
+install-doc: install-info install-pdf install-ps install-dvi
+
+.PHONY: install-info
+install-info: libpassphrase.info
+	install -dm755 -- "$(DESTDIR)$(INFODIR)"
+	install  -m644 -- "$<" "$(DESTDIR)$(INFODIR)/$(PKGNAME).info"
+
+.PHONY: install-pdf
+install-pdf: libpassphrase.pdf
+	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
+	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).pdf"
+
+.PHONY: install-ps
+install-ps: libpassphrase.ps
+	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
+	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).ps"
+
+.PHONY: install-dvi
+install-dvi: libpassphrase.dvi
+	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
+	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).dvi"
 
 
 .PHONY: uninstall
 uninstall:
-	-rm -- "$(DESTDIR)$(PREFIX)$(LIB)/libpassphrase.so"
-	-rm -- "$(DESTDIR)$(PREFIX)$(INCLUDE)/passphrase.h"
-	-rm -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)/COPYING"
-	-rm -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)/LICENSE"
-	-rmdir -- "$(DESTDIR)$(PREFIX)$(LICENSES)/$(PKGNAME)"
-	-rm -- "$(DESTDIR)$(PREFIX)$(DATA)/info/$(PKGNAME).info.gz"
+	-rm -- "$(DESTDIR)$(LIBDIR)/libpassphrase.so"
+	-rm -- "$(DESTDIR)$(INCLUDEDIR)/passphrase.h"
+	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/COPYING"
+	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/LICENSE"
+	-rmdir -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)"
+	-rm -- "$(DESTDIR)$(INFODIR)/$(PKGNAME).info"
+	-rm -- "$(DESTDIR)$(INFODIR)/$(PKGNAME).pdf"
+	-rm -- "$(DESTDIR)$(INFODIR)/$(PKGNAME).ps"
+	-rm -- "$(DESTDIR)$(INFODIR)/$(PKGNAME).dvi"
 
 
 .PHONY: clean
 clean:
-	-rm -r bin obj libpassphrase.info.gz
+	-rm -r bin obj libpassphrase.{info,pdf,ps,dvi}
 
