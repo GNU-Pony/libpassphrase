@@ -308,7 +308,7 @@ char* passphrase_read(void)
 	  xflush();
 	  if (len == size)
 	    {
-	      if ((rc = xrealloc(rc, size, size << 1L)) == NULL)
+	      if ((rc = xrealloc(rc, (size_t)size, (size_t)size << 1)) == NULL)
 		return NULL;
 	      size <<= 1L;
 	    }
@@ -353,9 +353,9 @@ void passphrase_disable_echo(void)
   
   tcgetattr(STDIN_FILENO, &stty);
   saved_stty = stty;
-  stty.c_lflag &= ~ECHO;
+  stty.c_lflag &= (tcflag_t)~ECHO;
 #if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_MOVE)
-  stty.c_lflag &= ~ICANON;
+  stty.c_lflag &= (tcflag_t)~ICANON;
 #endif
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
 #endif
