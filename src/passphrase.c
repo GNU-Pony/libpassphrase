@@ -158,7 +158,10 @@ char* passphrase_read(void)
 	      c = (char)cc;
 	      if (point == len)
 		{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 		  xputchar(c);
+#pragma GCC diagnostic pop
 		  *(rc + len++) = c;
 		  point++;
 		}
@@ -170,7 +173,10 @@ char* passphrase_read(void)
 		  {
 		    if ((c & 0xC0) != 0x80)
 		      { xprintf("\033[@"); }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 		    xputchar(c);
+#pragma GCC diagnostic pop
 		    for (i = len; i > point; i--)
 		      *(rc + i) = *(rc + i - 1);
 		    len++;
@@ -195,10 +201,10 @@ char* passphrase_read(void)
 			cn <<= 1;
 			n++;
 		      }
-		    n = n ?: 1;
+		    n = n ? n : 1;
 		    if (len + n > size)
 		      {
-			if ((rc = xrealloc(rc, size, size << 1L)) == NULL)
+			if ((rc = xrealloc(rc, (size_t)size, (size_t)size << 1L)) == NULL)
 			  return NULL;
 			size <<= 1L;
 		      }
@@ -209,7 +215,10 @@ char* passphrase_read(void)
 		      {
 			if (i)
 			  c = getchar();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 			xputchar(c);
+#pragma GCC diagnostic pop
 			*(rc + point++) = c;
 		      }
 		  }
