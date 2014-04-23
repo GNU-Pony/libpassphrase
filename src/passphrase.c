@@ -36,7 +36,7 @@ static struct termios saved_stty;
 
 
 #ifndef PASSPHRASE_REALLOC
-static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
+static char* xrealloc(char* array, size_t cur_size, size_t new_size)
 {
   char* rc = malloc(new_size * sizeof(char));
   size_t i;
@@ -57,10 +57,10 @@ static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
 #  define xprintf(...)  /* do nothing */
 #  define xflush()      /* do nothing */
 #elif defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_STAR)
-#  define xprintf(FORMAT, ...)  fprintf(stderr, FORMAT, __VA_ARGS__)
-#  define xflush()              fflush(stderr)
+#  define xprintf(...)  fprintf(stderr, __VA_ARGS__)
+#  define xflush()      fflush(stderr)
 #else
-#  define xflush()              fflush(stderr)
+#  define xflush()      fflush(stderr)
 #endif
 
 
@@ -298,7 +298,7 @@ char* passphrase_read(void)
 	    {
 	      if (len == 0)
 		continue;
-	      xprintf("%s", "\033[D \033[D");
+	      xprintf("\033[D \033[D");
 	      xflush();
 	      *(rc + --len) = 0;
 #ifdef DEBUG
