@@ -57,11 +57,9 @@ STD = gnu99
 # C preprocessor flags
 CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(CPPFLAGS)
 # C compiling flags
-_fPIC = -fPIC
-CFLAGS_ = -std=$(STD) $(WARN) $(_fPIC) $(CFLAGS)
+CFLAGS_ = -std=$(STD) $(WARN) $(CFLAGS)
 # Linking flags
-_shared = -shared
-LDFLAGS_ = $(_shared) $(LDFLAGS)
+LDFLAGS_ = $(LDFLAGS)
 
 # Flags to use when compiling and assembling
 CC_FLAGS = $(CPPFLAGS_) $(CFLAGS_) $(OPTIMISE)
@@ -87,13 +85,16 @@ test: bin/test
 
 bin/libpassphrase.so: obj/passphrase.o
 	@mkdir -p bin
-	$(CC) $(LD_FLAGS) -o "$@" $^
+	$(CC) $(LD_FLAGS) -shared -o "$@" $^
 
-bin/test: obj/passphrase.o obj/test.o
-	@mkdir -p bin
-	$(CC) $(LD_FLAGS) -o "$@" $^
+bin/test: bin/libpassphrase.so obj/test.o
+	$(CC) $(LD_FLAGS) -L bin -lpassphrase -o "$@" obj/test.o
 
-obj/%.o: src/%.c src/%.h
+obj/passphrase.o: src/passphrase.c src/passphrase.h
+	@mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<"
+
+obj/test.o: src/test.c src/test.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<"
 
