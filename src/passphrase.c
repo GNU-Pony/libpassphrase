@@ -57,7 +57,7 @@ static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
 #  define xprintf(...)  /* do nothing */
 #  define xflush()      /* do nothing */
 #elif defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_STAR)
-#  define xprintf(format, ...)  fprintf(stderr, format, __VA_ARGS__)
+#  define xprintf(FORMAT, ...)  fprintf(stderr, FORMAT, __VA_ARGS__)
 #  define xflush()              fflush(stderr)
 #else
 #  define xflush()              fflush(stderr)
@@ -66,9 +66,9 @@ static inline char* xrealloc(char* array, size_t cur_size, size_t new_size)
 
 #ifdef PASSPHRASE_MOVE
 #  if defined(PASSPHRASE_STAR)
-#    define xputchar(C)  ({ if ((C & 0xC0) != 0x80)  putchar('*'); })
+#    define xputchar(C)  ({ if ((C & 0xC0) != 0x80)  fputc('*', stderr); })
 #  elif defined(PASSPHRASE_ECHO)
-#    define xputchar(C)  putchar(C)
+#    define xputchar(C)  fputc(C, stderr)
 #  else
 #    define xputchar(C)  ({ /* be silent */ })
 #  endif
@@ -298,7 +298,7 @@ char* passphrase_read(void)
 	    {
 	      if (len == 0)
 		continue;
-	      xprintf("\033[D \033[D");
+	      xprintf("%s", "\033[D \033[D");
 	      xflush();
 	      *(rc + --len) = 0;
 #ifdef DEBUG
@@ -308,7 +308,7 @@ char* passphrase_read(void)
 #endif
 	    }
 	  if ((c & 0xC0) != 0x80)
-	    putchar('*');
+	    fputc('*', stderr);
 	  *(rc + len++) = c;
 #else
 	  *(rc + len++) = c;
