@@ -162,7 +162,7 @@ char* passphrase_read(void)
 #pragma GCC diagnostic ignored "-Wpedantic"
 		  xputchar(c);
 #pragma GCC diagnostic pop
-		  *(rc + len++) = c;
+		  *(rc + len++) = (char)c;
 		  point++;
 		}
 #ifdef PASSPHRASE_INSERT
@@ -180,14 +180,14 @@ char* passphrase_read(void)
 		    for (i = len; i > point; i--)
 		      *(rc + i) = *(rc + i - 1);
 		    len++;
-		    *(rc + point++) = c;
+		    *(rc + point++) = (char)c;
 		  }
 #endif
 #ifdef PASSPHRASE_OVERRIDE
 		else
 		  {
 		    long n = 1;
-		    char cn = c;
+		    char cn = (char)c;
 		    while ((*(rc + point + n) & 0xC0) == 0x80)
 		      n++;
 		    for (i = point + n; i < len; i++)
@@ -198,7 +198,7 @@ char* passphrase_read(void)
 		    n = 0;
 		    while (cn & 0x80)
 		      {
-			cn <<= 1;
+			cn = (char)(cn << 1);
 			n++;
 		      }
 		    n = n ? n : 1;
@@ -219,7 +219,7 @@ char* passphrase_read(void)
 #pragma GCC diagnostic ignored "-Wpedantic"
 			xputchar(c);
 #pragma GCC diagnostic pop
-			*(rc + point++) = c;
+			*(rc + point++) = (char)c;
 		      }
 		  }
 #endif
@@ -352,6 +352,12 @@ char* passphrase_read(void)
 }
 
 
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
+# pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
+/* Must positively absolutely not be flagged as possible to optimise away as it depends on configurations,
+   and programs that uses this library must not be forced to be recompiled if the library is reconfigured. */
+
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
@@ -380,4 +386,6 @@ void passphrase_reenable_echo(void)
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
 #endif
 }
+
+# pragma GCC diagnostic pop
 
