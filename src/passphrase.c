@@ -309,9 +309,9 @@ char* passphrase_read(void)
 	    }
 	  if ((c & 0xC0) != 0x80)
 	    fputc('*', stderr);
-	  *(rc + len++) = c;
+	  *(rc + len++) = (char)c;
 #else
-	  *(rc + len++) = c;
+	  *(rc + len++) = (char)c;
 #endif
 	  
 	  xflush();
