@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "passphrase.h"
 
@@ -43,8 +44,7 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
   if (rc)
     for (i = 0; i < cur_size; i++)
 	*(rc + i) = *(array + i);
-  for (i = 0; i < cur_size; i++)
-    *(array + i) = 0;
+  passphrase_wipe(array, cur_size);
   free(array);
   return rc;
 }
@@ -192,8 +192,7 @@ char* passphrase_read(void)
 		      n++;
 		    for (i = point + n; i < len; i++)
 		      *(rc + i - n) = *(rc + i);
-		    for (i = len - n; i < len; i++)
-		      *(rc + i) = 0;
+		    passphrase_wipe(rc + len - n, n);
 		    len -= n;
 		    n = 0;
 		    while (cn & 0x80)
@@ -357,6 +356,25 @@ char* passphrase_read(void)
 # pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
 /* Must positively absolutely not be flagged as possible to optimise away as it depends on configurations,
    and programs that uses this library must not be forced to be recompiled if the library is reconfigured. */
+
+
+/**
+ * Used to make sure that `passphrase_wipe` is not optimised away even within this library
+ */
+volatile sig_atomic_t passphrase_wipe_volatile = 1;
+
+/**
+ * Forcable write NUL characters to a passphrase
+ * 
+ * @param  ptr  The password to wipe
+ * @param  n    The number of characters to wipe
+ */
+void passphrase_wipe(char* ptr, size_t n)
+{
+  size_t i;
+  for (i = 0; (i < n) && passphrase_wipe_volatile; i++)
+    *(ptr + i) = 0;
+}
 
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires

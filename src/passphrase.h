@@ -28,6 +28,14 @@
 extern char* passphrase_read(void);
 
 /**
+ * Forcable write NUL characters to a passphrase
+ * 
+ * @param  ptr  The password to wipe
+ * @param  n    The number of characters to wipe
+ */
+extern void passphrase_wipe(char* ptr, size_t n) __attribute__((optimize("-O0")));
+
+/**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
 extern void passphrase_disable_echo(void);
