@@ -192,7 +192,7 @@ char* passphrase_read(void)
 		      n++;
 		    for (i = point + n; i < len; i++)
 		      *(rc + i - n) = *(rc + i);
-		    passphrase_wipe(rc + len - n, n);
+		    passphrase_wipe(rc + len - n, (size_t)n);
 		    len -= n;
 		    n = 0;
 		    while (cn & 0x80)
@@ -208,8 +208,10 @@ char* passphrase_read(void)
 			size <<= 1L;
 		      }
 		    len += n;
-		    for (i = len - 1; i >= point + n; i--)
+		    for (i = len - 1; i > point + n; i--)
 		      *(rc + i) = *(rc + i - n);
+		    if (len - 1 >= point + n)
+		      *(rc + point + n) = *(rc + point);
 		    for (i = 0; i < n; i++)
 		      {
 			if (i)
@@ -271,8 +273,10 @@ char* passphrase_read(void)
 	      while (redo)
 		{
 		  redo = (*(rc + point - 1) & 0xC0) == 0x80;
-		  for (i = point; i <= len; i++)
+		  for (i = point; i < len; i++)
 		    *(rc + i - 1) = *(rc + i);
+		  if (point <= len)
+		    *(rc + len - 1) = *(rc + len);
 		  point--;
 		  len--;
 		}
