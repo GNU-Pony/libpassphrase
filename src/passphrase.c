@@ -373,7 +373,7 @@ volatile sig_atomic_t passphrase_wipe_volatile = 1;
  * @param  ptr  The password to wipe
  * @param  n    The number of characters to wipe
  */
-void passphrase_wipe(char* ptr, size_t n)
+void passphrase_wipe(volatile char* ptr, size_t n)
 {
   size_t i;
   for (i = 0; (i < n) && passphrase_wipe_volatile; i++)

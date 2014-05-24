@@ -33,7 +33,7 @@ extern char* passphrase_read(void);
  * @param  ptr  The password to wipe
  * @param  n    The number of characters to wipe
  */
-extern void passphrase_wipe(char* ptr, size_t n) __attribute__((optimize("-O0")));
+extern void passphrase_wipe(volatile char* ptr, size_t n) __attribute__((optimize("-O0")));
 
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
