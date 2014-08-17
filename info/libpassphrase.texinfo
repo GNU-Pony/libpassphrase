@@ -133,6 +133,14 @@ saves all settings before changing them and
 @code{passphrase_reenable_echo} applies to
 saved settings.
 
+@item  void passphrase_wipe(char*, size_t)
+When you are done using passhprase you should
+erase it from the memory before freeing its
+allocation. To do this securtly, call
+@code{passphrase_wipe} with the passphase
+as the first argument and the length of the
+passphrase as the second argument.
+
 @end table
 
 These three functions could be made into one
@@ -150,12 +158,12 @@ been disabled.
 #include <passphrase.h>  /* For libpassphrase */
 #include <stdio.h>       /* For output        */
 #include <stdlib.h>      /* For free          */
+#include <string.h>      /* For strlen        */
 
 int main(int argc, char** argv)
 @{
   /* Variables for the passphrase */
   char* passphrase;
-  char* passphrase_;
   
   /* Hide the passphrase */
   passphrase_disable_echo();
@@ -177,10 +185,8 @@ int main(int argc, char** argv)
   printf("You entered: %s\n", passphrase);
   
   /* Wipe and free the passphrase */
-  passphrase_ = passphrase;
-  while (*passphrase)
-    *passphrase++ = 0;
-  free(passphrase_);
+  passphrase_wipe(passphrase, strlen(passphrase));
+  free(passphrase);
   
   /* Stop hiding user input */
   passphrase_reenable_echo();
