@@ -60,11 +60,11 @@ WARN = -Wall -Wextra -pedantic -Wdouble-promotion -Wformat=2 -Winit-self -Wmissi
 # The C standard for C code compilation
 STD = gnu99
 # C preprocessor flags
-CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(CPPFLAGS)
+CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1')
 # C compiling flags
-CFLAGS_ = -std=$(STD) $(WARN) $(CFLAGS)
+CFLAGS_ = -std=$(STD) $(WARN)
 # Linking flags
-LDFLAGS_ = $(LDFLAGS)
+LDFLAGS_ = 
 
 # Flags to use when compiling and assembling
 CC_FLAGS = $(CPPFLAGS_) $(CFLAGS_) $(OPTIMISE)
@@ -74,34 +74,47 @@ LD_FLAGS = $(LDFLAGS_) $(CFLAGS_) $(OPTIMISE)
 
 
 .PHONY: default
-default: libpassphrase info
+default: lib info
 
 .PHONY: all
-all: libpassphrase test doc
+all: lib test doc
 
 .PHONY: doc
 doc: info pdf ps dvi
 
+.PHONY: lib
+lib: libpassphrase
+
 .PHONY: libpassphrase
-libpassphrase: bin/libpassphrase.so
+libpassphrase: so a
+
+.PHONY: so
+so: bin/libpassphrase.so
+
+.PHONY: a
+a: bin/libpassphrase.a
 
 .PHONY: test
 test: bin/test
 
 bin/libpassphrase.so: obj/passphrase.o
 	@mkdir -p bin
-	$(CC) $(LD_FLAGS) -shared -o "$@" $^
+	$(CC) $(LD_FLAGS) -shared -o "$@" $^ $(LDFLAGS)
+
+bin/libpassphrase.a: obj/passphrase.o
+	@mkdir -p bin
+	ar rcs "$@" $^
 
 bin/test: bin/libpassphrase.so obj/test.o
-	$(CC) $(LD_FLAGS) -L bin -lpassphrase -o "$@" obj/test.o
+	$(CC) $(LD_FLAGS) -Lbin -lpassphrase -o "$@" obj/test.o $(LDFLAGS)
 
 obj/passphrase.o: src/passphrase.c src/passphrase.h
 	@mkdir -p "$(shell dirname "$@")"
-	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<"
+	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
 obj/test.o: src/test.c src/test.h
 	@mkdir -p "$(shell dirname "$@")"
-	$(CC) $(CC_FLAGS) -o "$@" -c "$<"
+	$(CC) $(CC_FLAGS) -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
 .PHONY: info
 info: libpassphrase.info
@@ -137,13 +150,24 @@ install: install-base install-info
 install-all: install-base install-doc
 
 .PHONY: install-base
-install-base: install-lib install-license
+install-base: install-so install-a install-header install-license
 
 .PHONY: install-lib
-install-lib: bin/libpassphrase.so libpassphrase.info
+install-lib: install-so install-a install-header
+
+.PHONY: install-so
+install-so: bin/libpassphrase.so
 	install -dm755 -- "$(DESTDIR)$(LIBDIR)"
-	install -dm755 -- "$(DESTDIR)$(INCLUDEDIR)"
 	install  -m755 -- bin/libpassphrase.so "$(DESTDIR)$(LIBDIR)"
+
+.PHONY: install-a
+install-a: bin/libpassphrase.a
+	install -dm755 -- "$(DESTDIR)$(LIBDIR)"
+	install  -m644 -- bin/libpassphrase.a "$(DESTDIR)$(LIBDIR)"
+
+.PHONY: install-header
+install-header:
+	install -dm755 -- "$(DESTDIR)$(INCLUDEDIR)"
 	install  -m755 -- src/passphrase.h "$(DESTDIR)$(INCLUDEDIR)"
 
 .PHONY: install-license
@@ -178,6 +202,7 @@ install-dvi: libpassphrase.dvi
 .PHONY: uninstall
 uninstall:
 	-rm -- "$(DESTDIR)$(LIBDIR)/libpassphrase.so"
+	-rm -- "$(DESTDIR)$(LIBDIR)/libpassphrase.a"
 	-rm -- "$(DESTDIR)$(INCLUDEDIR)/passphrase.h"
 	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/COPYING"
 	-rm -- "$(DESTDIR)$(LICENSEDIR)/$(PKGNAME)/LICENSE"
@@ -190,5 +215,5 @@ uninstall:
 
 .PHONY: clean
 clean:
-	-rm -r bin obj libpassphrase.{info,pdf,ps,dvi}
+	-rm -r bin obj *.info *.pdf *.ps *.dvi
 
