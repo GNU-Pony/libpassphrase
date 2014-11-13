@@ -99,7 +99,7 @@ test: bin/test
 
 bin/libpassphrase.so: obj/passphrase.o
 	@mkdir -p bin
-	$(CC) $(LD_FLAGS) -shared -o "$@" $^ $(LDFLAGS)
+	$(CC) $(LD_FLAGS) -shared -Wl,-soname,libpassphrase.so -o "$@" $^ $(LDFLAGS)
 
 bin/libpassphrase.a: obj/passphrase.o
 	@mkdir -p bin
