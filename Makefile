@@ -31,8 +31,8 @@ PKGNAME ?= libpassphrase
 # Options with which to compile the library
 OPTIONS ?= 
 # PASSPHRASE_ECHO:       Do not hide the passphrase
-# PASSPHRASE_STAR:       Use '*' for each character instead of no echo
-# PASSPHRASE_TEXT:       Use '(empty)' and '(not empty)' instead of no echo
+# PASSPHRASE_STAR:       Use "*" for each character instead of no echo
+# PASSPHRASE_TEXT:       Use "(empty)" and "(not empty)" instead of no echo
 # PASSPHRASE_REALLOC:    Soften security by using `realloc`
 # PASSPHRASE_MOVE:       Enable move of point
 # PASSPHRASE_INSERT:     Enable insert mode
@@ -42,6 +42,15 @@ OPTIONS ?=
 # PASSPHRASE_DEDICATED:  Enable use of dedicated keys
 # DEFAULT_INSERT:        Use insert mode as default
 # PASSPHRASE_INVALID:    Prevent duplication of non-initialised memory
+
+# Text to use instead of "*"
+PASSPHRASE_STAR_CHAR      ?= \*
+# Text to use instead of "(empty)"
+PASSPHRASE_TEXT_EMPTY     ?= (empty)
+# Text to use instead of "(not empty)"
+PASSPHRASE_TEXT_NOT_EMPTY ?= (not empty)
+
+QUOTED_OPTIONS = PASSPHRASE_STAR_CHAR PASSPHRASE_TEXT_EMPTY PASSPHRASE_TEXT_NOT_EMPTY
 
 
 # Optimisation settings for C code compilation
@@ -61,7 +70,7 @@ WARN = -Wall -Wextra -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include
 # The C standard for C code compilation
 STD = gnu99
 # C preprocessor flags
-CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1')
+CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(foreach D, $(QUOTED_OPTIONS), -D'$(D)="$($(D))"')
 # C compiling flags
 CFLAGS_ = -std=$(STD) $(WARN)
 # Linking flags

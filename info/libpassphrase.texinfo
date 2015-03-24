@@ -221,10 +221,10 @@ The following options are defined:
 @item @code{PASSPHRASE_ECHO}
 Do not hide the passphrase.
 
-@item @code{PASSPHRASE_STAR} @footnote{May not be combined with @code{PASSPHRASE_ECHO}.}
+@item @code{PASSPHRASE_STAR} @footnote{May not be combined with @code{PASSPHRASE_ECHO} or @code{PASSPHRASE_TEXT}.}
 Use `*' for each character instead of disabling echoing.
 
-@item @code{PASSPHRASE_TEXT} @footnote{May not be combined with @code{PASSPHRASE_TEXT}.}
+@item @code{PASSPHRASE_TEXT} @footnote{May not be combined with @code{PASSPHRASE_STAR} or @code{PASSPHRASE_ECHO}.}
 Use the texts `(empty)' and `(not empty)' to describe whether
 anything has been entered or not the instead of disabling echoing.
 
@@ -315,6 +315,37 @@ is about to be read.
 This options is not really needed, but not
 using it means that you can get warnings
 in @command{valgrind}.
+
+@end table
+
+
+In addition, you may use the follow flags.
+
+@table @asis
+
+@item @code{PASSPHRASE_STAR_CHAR}
+The text to print instead of the character `*' when
+@code{PASSPHRASE_STAR} is used. For example you may run
+@example
+make OPTIONS=PASSPHRASE_STAR  \
+     PASSPHRASE_STAR_CHAR="#"
+@end example
+
+@item @code{PASSPHRASE_TEXT_EMPTY}
+The text to print instead of the `(empty)' when
+@code{PASSPHRASE_TEXT} is used. For example you may run
+@example
+make OPTIONS=PASSPHRASE_TEXT  \
+     PASSPHRASE_TEXT_EMPTY="there is nothing here"
+@end example
+
+@item @code{PASSPHRASE_TEXT_NOT_EMPTY}
+The text to print instead of the `(not empty)' when
+@code{PASSPHRASE_TEXT} is used. For example you may run
+@example
+make OPTIONS=PASSPHRASE_TEXT  \
+     PASSPHRASE_TEXT_NOT_EMPTY="there is something here"
+@end example
 
 @end table
 

@@ -25,17 +25,25 @@
 #  warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_STAR
 #  undef PASSPHRASE_TEXT
 #endif
+#if defined(PASSPHRASE_STAR) && defined(PASSPHRASE_ECHO)
+#  warning You cannot have both PASSPHRASE_STAR and PASSPHRASE_ECHO
+#  undef PASSPHRASE_ECHO
+#endif
+#if defined(PASSPHRASE_TEXT) && defined(PASSPHRASE_ECHO)
+#  warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_ECHO
+#  undef PASSPHRASE_ECHO
+#endif
 
 
 /* Default texts */
 #ifndef PASSPHRASE_STAR_CHAR
-#  define PASSPHRASE_STAR_CHAR  "*"  /* TODO document */
+#  define PASSPHRASE_STAR_CHAR  "*"
 #endif
 #ifndef PASSPHRASE_TEXT_EMPTY
-#  define PASSPHRASE_TEXT_EMPTY  "(empty)"  /* TODO document */
+#  define PASSPHRASE_TEXT_EMPTY  "(empty)"
 #endif
 #ifndef PASSPHRASE_TEXT_NOT_EMPTY
-#  define PASSPHRASE_TEXT_NOT_EMPTY  "(not empty)"  /* TODO document */
+#  define PASSPHRASE_TEXT_NOT_EMPTY  "(not empty)"
 #endif
 
 
