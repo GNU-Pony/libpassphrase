@@ -21,5 +21,4 @@ for a in PASSPHRASE_ECHO ""; do
 	done
     done
 done
-done
 
