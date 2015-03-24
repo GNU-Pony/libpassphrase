@@ -30,24 +30,24 @@ PKGNAME ?= libpassphrase
 
 # Options with which to compile the library
 OPTIONS ?= 
-# PASSPHRASE_ECHO:      Do not hide the passphrase
-# PASSPHRASE_STAR:      Use '*' for each character instead of no echo
-# PASSPHRASE_TEXT:      Use '(empty)' and '(not empty)' instead of no echo
-# PASSPHRASE_REALLOC:   Soften security by using `realloc`
-# PASSPHRASE_MOVE:      Enable move of point
-# PASSPHRASE_INSERT:    Enable insert mode
-# PASSPHRASE_OVERRIDE:  Enable override mode
-# PASSPHRASE_DELETE:    Enable reversed erase command
-# PASSPHRASE_CONTROL:   Enable use of control key combinations
-# PASSPHRASE_DEDICATED: Enable use of dedicated keys
-# DEFAULT_INSERT:       Use insert mode as default
-# PASSPHRASE_INVALID:   Prevent duplication of non-initialised memory
+# PASSPHRASE_ECHO:       Do not hide the passphrase
+# PASSPHRASE_STAR:       Use '*' for each character instead of no echo
+# PASSPHRASE_TEXT:       Use '(empty)' and '(not empty)' instead of no echo
+# PASSPHRASE_REALLOC:    Soften security by using `realloc`
+# PASSPHRASE_MOVE:       Enable move of point
+# PASSPHRASE_INSERT:     Enable insert mode
+# PASSPHRASE_OVERRIDE:   Enable override mode
+# PASSPHRASE_DELETE:     Enable reversed erase command
+# PASSPHRASE_CONTROL:    Enable use of control key combinations
+# PASSPHRASE_DEDICATED:  Enable use of dedicated keys
+# DEFAULT_INSERT:        Use insert mode as default
+# PASSPHRASE_INVALID:    Prevent duplication of non-initialised memory
 
 
 # Optimisation settings for C code compilation
 OPTIMISE ?= -Os
 # Warnings settings for C code compilation
-WARN = -Wall -Wextra -pedantic -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include-dirs  \
+WARN = -Wall -Wextra -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include-dirs            \
        -Wtrampolines -Wfloat-equal -Wshadow -Wmissing-prototypes -Wmissing-declarations          \
        -Wredundant-decls -Wnested-externs -Winline -Wno-variadic-macros -Wsync-nand              \
        -Wunsafe-loop-optimizations -Wcast-align -Wstrict-overflow -Wdeclaration-after-statement  \
@@ -109,7 +109,7 @@ bin/libpassphrase.a: obj/passphrase.o
 bin/test: bin/libpassphrase.so obj/test.o
 	$(CC) $(LD_FLAGS) -Lbin -lpassphrase -o "$@" obj/test.o $(LDFLAGS)
 
-obj/passphrase.o: src/passphrase.c src/passphrase.h
+obj/passphrase.o: src/passphrase.c src/passphrase.h src/passphrase_helper.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 

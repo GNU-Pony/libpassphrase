@@ -23,9 +23,12 @@
 #include <signal.h>
 
 #include "passphrase.h"
+#include "passphrase_helper.h"
 
 
 #define START_PASSPHRASE_LIMIT  32
+
+
 
 
 #if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
@@ -33,7 +36,8 @@
  * The original TTY settings
  */
 static struct termios saved_stty;
-#endif
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+
 
 
 #ifndef PASSPHRASE_REALLOC
@@ -48,31 +52,55 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
   free(array);
   return rc;
 }
-#else
-#define xrealloc(array, _cur_size, new_size)  realloc(array, (new_size) * sizeof(char))
-#endif
+#else /* !PASSPHRASE_REALLOC */
+#  define xrealloc(array, _cur_size, new_size)  realloc(array, (new_size) * sizeof(char))
+#endif /* !PASSPHRASE_REALLOC */
 
 
-#if defined(PASSPHRASE_MOVE) && !defined(PASSPHRASE_STAR) && !defined(PASSPHRASE_ECHO)
-#  define xprintf(...)  /* do nothing */
-#  define xflush()      /* do nothing */
-#elif defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_STAR)
-#  define xprintf(...)  fprintf(stderr, __VA_ARGS__)
-#  define xflush()      fflush(stderr)
-#else
-#  define xflush()      fflush(stderr)
-#endif
+
+#if defined(PASSPHRASE_DEDICATED) && defined(PASSPHRASE_MOVE)
+static int get_dedicated_control_key(void)
+{
+  int c = getchar();
+  if (c == 'O')
+    {
+      c = getchar();
+      if (c == 'H')  return KEY_HOME;
+      if (c == 'F')  return KEY_END;
+    }
+  else if (c == '[')
+    {
+      c = getchar();
+      if (c == 'C')  return KEY_RIGHT;
+      if (c == 'D')  return KEY_LEFT;
+      if (('1' <= c) && (c <= '4') && (getchar() == '~'))
+	return -(c - '0');
+    }
+  return 0;
+}
+#endif /* PASSPHRASE_DEDICATED && PASSPHRASE_MOVE */
+
 
 
 #ifdef PASSPHRASE_MOVE
-#  if defined(PASSPHRASE_STAR)
-#    define xputchar(C)  ({ if ((C & 0xC0) != 0x80)  fputc('*', stderr); })
-#  elif defined(PASSPHRASE_ECHO)
-#    define xputchar(C)  fputc(C, stderr)
-#  else
-#    define xputchar(C)  ({ /* be silent */ })
-#  endif
-#endif
+static int get_key(int c)
+{
+#ifdef PASSPHRASE_DEDICATED
+  if (c == '\033')             return get_dedicated_control_key();
+#endif /* PASSPHRASE_DEDICATED */
+  if ((c == 8) || (c == 127))  return KEY_ERASE;
+  if ((c < 0) || (c >= ' '))   return ((int)c) & 255;
+#ifdef PASSPHRASE_CONTROL
+  if (c == 'A' - '@')          return KEY_HOME;
+  if (c == 'B' - '@')          return KEY_LEFT;
+  if (c == 'D' - '@')          return KEY_DELETE;
+  if (c == 'E' - '@')          return KEY_END;
+  if (c == 'F' - '@')          return KEY_RIGHT;
+#endif /* PASSPHRASE_CONTROL */
+  return 0;
+}
+#endif /* PASSPHRASE_MOVE */
+
 
 
 /**
@@ -83,23 +111,31 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
 char* passphrase_read(void)
 {
   char* rc = malloc(START_PASSPHRASE_LIMIT * sizeof(char));
-  long size = START_PASSPHRASE_LIMIT;
-  long len =  0;
+  size_t size = START_PASSPHRASE_LIMIT;
+  size_t len =  0;
 #ifdef PASSPHRASE_MOVE
-  long point = 0;
-  long i = 0;
-#  ifdef PASSPHRASE_OVERRIDE
-#    if defined(PASSPHRASE_INSERT) && defined(DEFAULT_INSERT)
-  char insert = 1;
-#    elif defined(PASSPHRASE_INSERT)
-  char insert = 0;
-#    endif
-#  endif
-#endif
+  size_t point = 0;
+  size_t i = 0;
+#  if defined(PASSPHRASE_OVERRIDE) && defined(PASSPHRASE_INSERT)
+  char insert = DEFAULT_INSERT_VALUE;
+#  endif /* PASSPHRASE_OVERRIDE && PASSPHRASE_INSERT */
+#endif /* PASSPHRASE_MOVE */
+#ifdef PASSPHRASE_TEXT
+  size_t printed_len = 0;
+#endif /* PASSPHRASE_TEXT */
   int c;
+#ifdef PASSPHRASE_MOVE
+  int cc;
+#endif
   
   if (rc == NULL)
     return NULL;
+  
+#ifdef PASSPHRASE_TEXT
+  xprintf("%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len);
+  if (printed_len)
+    xprintf("\e[%zuD", printed_len);
+#endif /* PASSPHRASE_TEXT */
   
   /* Read password until EOF or Enter, skip all \0 as that
      is probably not a part of the passphrase (good luck typing
@@ -107,242 +143,85 @@ char* passphrase_read(void)
   for (;;)
     {
       c = getchar();
-      if ((c < 0) || (c == '\n'))
-	break;
-      if (c != 0)
-        {
+      if ((c < 0) || (c == '\n'))  break;
+      if (c == 0)                  continue;
+      
 #if defined(PASSPHRASE_MOVE)
-	  /* \e[1~  \eOH  ^A  -1  home   */
-	  /* \e[2~            -2  insert */
-	  /* \e[3~  ^D        -3  delete */
-	  /* \e[4~  \eOF  ^E  -4  end    */
-	  /* \8     \127      -5  erase  */
-	  /* \e[C   ^F        -6  right  */
-	  /* \e[D   ^B        -7  left   */
-	  int cc = 0;
-#ifdef PASSPHRASE_DEDICATED
-	  if (c == '\033')
-	    {
-	      c = getchar();
-	      if (c == 'O')
-		{
-		  c = getchar();
-		  if      (c == 'H')  cc = -1;
-		  else if (c == 'F')  cc = -4;
-		}
-	      else if (c == '[')
-		{
-		  c = getchar();
-		  if      (c == 'C')  cc = -6;
-		  else if (c == 'D')  cc = -7;
-		  else if (('1' <= c) && (c <= '4') && (getchar() == '~'))
-		    cc = -(c - '0');
-		}
-	    }
+      cc = get_key(c);
+      if (cc > 0)
+	{
+	  c = (char)cc;
+	  if (point == len)
+	    append_char();
+#  ifdef PASSPHRASE_INSERT
 	  else
-#endif
-	    if ((c == 8) || (c == 127))
-	      cc = -5;
-	    else if ((c < 0) || (c >= ' '))
-	      cc = ((int)c) & 255;
-#ifdef PASSPHRASE_CONTROL
-	    else if (c == 'A' - '@')  cc = -1;
-	    else if (c == 'B' - '@')  cc = -7;
-	    else if (c == 'D' - '@')  cc = -3;
-	    else if (c == 'E' - '@')  cc = -4;
-	    else if (c == 'F' - '@')  cc = -6;
-#endif
-	  
-	  if (cc > 0)
-	    {
-	      c = (char)cc;
-	      if (point == len)
-		{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-		  xputchar(c);
-#pragma GCC diagnostic pop
-		  *(rc + len++) = (char)c;
-		  point++;
-		}
-#ifdef PASSPHRASE_INSERT
-	      else
-#ifdef PASSPHRASE_OVERRIDE
-		if (insert)
-#endif
-		  {
-		    if ((c & 0xC0) != 0x80)
-		      { xprintf("\033[@"); }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-		    xputchar(c);
-#pragma GCC diagnostic pop
-		    for (i = len; i > point; i--)
-		      *(rc + i) = *(rc + i - 1);
-		    len++;
-		    *(rc + point++) = (char)c;
-		  }
-#endif
-#ifdef PASSPHRASE_OVERRIDE
-		else
-		  {
-		    long n = 1;
-		    char cn = (char)c;
-		    while ((*(rc + point + n) & 0xC0) == 0x80)
-		      n++;
-		    for (i = point + n; i < len; i++)
-		      *(rc + i - n) = *(rc + i);
-		    passphrase_wipe(rc + len - n, (size_t)n);
-		    len -= n;
-		    n = 0;
-		    while (cn & 0x80)
-		      {
-			cn = (char)(cn << 1);
-			n++;
-		      }
-		    n = n ? n : 1;
-		    if (len + n > size)
-		      {
-			if ((rc = xrealloc(rc, (size_t)size, (size_t)size << 1L)) == NULL)
-			  return NULL;
-			size <<= 1L;
-		      }
-		    len += n;
-		    for (i = len - 1; i > point + n; i--)
-		      *(rc + i) = *(rc + i - n);
-		    if (len - 1 >= point + n)
-		      *(rc + point + n) = *(rc + point);
-		    for (i = 0; i < n; i++)
-		      {
-			if (i)
-			  c = getchar();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-			xputchar(c);
-#pragma GCC diagnostic pop
-			*(rc + point++) = (char)c;
-		      }
-		  }
-#endif
-	    }
-	  else if ((cc == -1) && point) /* home */
-	    {
-	      long n = 0;
-	      for (i = 0; i < point; i++)
-		if ((*(rc + i) & 0xC0) != 0x80)
-		  n++;
-	      xprintf("\033[%liD", n);
-	      point = 0;
-	    }
-#if defined(PASSPHRASE_INSERT) && defined(PASSPHRASE_OVERRIDE)
-	  else if (cc == -2) /* insert */
-	    insert ^= 1;
-#endif
-#ifdef PASSPHRASE_DELETE
-	  else if ((cc == -3) && (len != point)) /* delete */
-	    {
-	      xprintf("\033[P");
-#ifdef PASSPHRASE_INVALID
-	      *(rc + len) = 0;
-#endif
-	      do
-		{
-		  for (i = point; i < len; i++)
-		    *(rc + i) = *(rc + i + 1);
-		  len--;
-		}
-	      while ((len != point) && ((*(rc + point) & 0xC0) == 0x80));
-	    }
-#endif
-	  else if ((cc == -4) && (len != point)) /* end */
-	    {
-	      long n = 0;
-	      for (i = point; i < len; i++)
-		if ((*(rc + i) & 0xC0) != 0x80)
-		  n++;
-	      xprintf("\033[%liC", n);
-	      point = len;
-	    }
-	  else if ((cc == -5) && point) /* erase */
-	    {
-	      char redo = 1;
-	      xprintf("\033[D\033[P");
-#ifdef PASSPHRASE_INVALID
-	      *(rc + len) = 0;
-#endif
-	      while (redo)
-		{
-		  redo = (*(rc + point - 1) & 0xC0) == 0x80;
-		  for (i = point; i < len; i++)
-		    *(rc + i - 1) = *(rc + i);
-		  if (point <= len)
-		    *(rc + len - 1) = *(rc + len);
-		  point--;
-		  len--;
-		}
-	    }
-	  else if ((cc == -6) && (len != point)) /* right */
-	    {
-	      xprintf("\033[C");
-	      do
-		point++;
-	      while ((len != point) && ((*(rc + point) & 0xC0) == 0x80));
-	    }
-	  else if ((cc == -7) && point) /* left */
-	    {
-	      xprintf("\033[D");
-	      point--;
-	      while (point && ((*(rc + point) & 0xC0) == 0x80))
-	        point--;
-	    }
-	  
-#elif defined(PASSPHRASE_STAR)
-	  if ((c == 8) || (c == 127))
-	    {
-	      if (len == 0)
-		continue;
-	      xprintf("\033[D \033[D");
-	      xflush();
-	      *(rc + --len) = 0;
-#ifdef DEBUG
-	      goto debug;
-#else
-	      continue;
-#endif
-	    }
-	  if ((c & 0xC0) != 0x80)
-	    fputc('*', stderr);
-	  *(rc + len++) = (char)c;
-#else
-	  *(rc + len++) = (char)c;
-#endif
-	  
-	  xflush();
-	  if (len == size)
-	    {
-	      if ((rc = xrealloc(rc, (size_t)size, (size_t)size << 1)) == NULL)
-		return NULL;
-	      size <<= 1L;
-	    }
-
-#ifdef DEBUG
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-label"
-	debug:
-	  {
-	    long n = 0;
-	    for (i = point; i < len; i++)
-	      if ((*(rc + i) & 0xC0) != 0x80)
-		n++;
-	    *(rc + len) = 0;
-	    if (n)
-	      fprintf(stderr, "\033[s\033[H\033[K%s\033[%liD\033[01;34m%s\033[00m\033[u", rc, n, rc + point);
+#    ifdef PASSPHRASE_OVERRIDE
+	    if (insert)
+#    endif /* PASSPHRASE_OVERRIDE */
+	      insert_char();
+#  endif /* PASSPHRASE_INSERT */
+#  ifdef PASSPHRASE_OVERRIDE
 	    else
-	      fprintf(stderr, "\033[s\033[H\033[K%s\033[01;34m%s\033[00m\033[u", rc, rc + point);
-	    fflush(stderr);
-	  }
-#endif
+	      override_char();
+#  endif /* PASSPHRASE_OVERRIDE */
 	}
+#  if defined(PASSPHRASE_INSERT) && defined(PASSPHRASE_OVERRIDE)
+      else if (cc == KEY_INSERT)                      insert ^= 1;
+#  endif /* PASSPHRASE_INSERT && PASSPHRASE_OVERRIDE */
+#  ifdef PASSPHRASE_DELETE
+      else if ((cc == KEY_DELETE) && (len != point))  delete_next(), print_delete();
+#  endif /* PASSPHRASE_DELETE */
+      else if ((cc == KEY_ERASE) && point)            erase_prev(), print_erase();
+      else if ((cc == KEY_HOME)  && (point != 0))     move_home();
+      else if ((cc == KEY_END)   && (point != len))   move_end();
+      else if ((cc == KEY_RIGHT) && (point != len))   move_right();
+      else if ((cc == KEY_LEFT)  && (point != 0))     move_left();
+      
+#elif defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) /* PASSPHRASE_MOVE */
+      if ((c == 8) || (c == 127))
+	{
+	  if (len == 0)
+	    continue;
+	  print_erase();
+	  xflush();
+	  erase_prev();
+#  ifdef DEBUG
+	  goto debug;
+#  else /* DEBUG */
+	  continue;
+#  endif /* DEBUG */
+	}
+      append_char();
+      
+#else /* PASSPHRASE_MOVE, PASSPHRASE_STAR || PASSPHRASE_TEXT */
+      append_char();
+#endif /* PASSPHRASE_MOVE, PASSPHRASE_STAR || PASSPHRASE_TEXT */
+      
+      xflush();
+      if (len == size)
+	{
+	  if ((rc = xrealloc(rc, (size_t)size, (size_t)size << 1)) == NULL)
+	    return NULL;
+	  size <<= 1L;
+	}
+      
+#ifdef DEBUG
+#  pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wunused-label"
+    debug:
+      {
+	size_t n = 0;
+	for (i = point; i < len; i++)
+	  if ((*(rc + i) & 0xC0) != 0x80)
+	    n++;
+	*(rc + len) = 0;
+	if (n)
+	  fprintf(stderr, "\033[s\033[H\033[K%s\033[%zuD\033[01;34m%s\033[00m\033[u", rc, n, rc + point);
+	else
+	  fprintf(stderr, "\033[s\033[H\033[K%s\033[01;34m%s\033[00m\033[u", rc, rc + point);
+	fflush(stderr);
+      }
+#endif /* DEBUG */
     }
   
   /* NUL-terminate passphrase */
@@ -350,14 +229,14 @@ char* passphrase_read(void)
   
 #if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
   fprintf(stderr, "\n");
-#endif
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
   return rc;
 }
 
 
 # pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
-# pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
+#   pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
+#   pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
 /* Must positively absolutely not be flagged as possible to optimise away as it depends on configurations,
    and programs that uses this library must not be forced to be recompiled if the library is reconfigured. */
 
@@ -391,11 +270,11 @@ void passphrase_disable_echo(void)
   tcgetattr(STDIN_FILENO, &stty);
   saved_stty = stty;
   stty.c_lflag &= (tcflag_t)~ECHO;
-#if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_MOVE)
+#  if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
   stty.c_lflag &= (tcflag_t)~ICANON;
-#endif
+#  endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
-#endif
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
 }
 
 
@@ -406,7 +285,7 @@ void passphrase_reenable_echo(void)
 {
 #if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
-#endif
+#endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
 }
 
 # pragma GCC diagnostic pop
