@@ -288,8 +288,8 @@
 
 /* Implementation of the delete-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
-#  define print_erase()							\
-  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len), \
+#  define print_delete()							\
+  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
 		   (printed_len ? xprintf("\e[%zuD", printed_len) : 0)))
 #else
 #  define print_delete()  xprintf("\033[P")
@@ -298,8 +298,8 @@
 
 /* Implementation of the erase-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
-#  define print_erase()  \
-  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len), \
+#  define print_erase()								\
+  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
 		   (printed_len ? xprintf("\e[%zuD", printed_len) : 0)))
 #elif defined(PASSPHRASE_MOVE)
 #  define print_erase()  xprintf("\033[D\033[P")
