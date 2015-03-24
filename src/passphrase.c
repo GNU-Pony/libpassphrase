@@ -182,9 +182,9 @@ char* passphrase_read(void)
 	{
 	  if (len == 0)
 	    continue;
+	  erase_prev();
 	  print_erase();
 	  xflush();
-	  erase_prev();
 #  ifdef DEBUG
 	  goto debug;
 #  else /* DEBUG */

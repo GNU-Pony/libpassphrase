@@ -139,27 +139,48 @@
 
 
 /* Implementation of the right-key's action */
-#define move_right()							\
+#if defined(PASSPHRASE_TEXT)
+#  define move_right()							\
+  ({									\
+    do									\
+      point++;								\
+    while ((len != point) && ((*(rc + point) & 0xC0) == 0x80));		\
+  })
+#else
+#  define move_right()							\
   ({									\
     xprintf("\033[C");							\
     do									\
       point++;								\
     while ((len != point) && ((*(rc + point) & 0xC0) == 0x80));		\
   })
+#endif
 
 
 /* Implementation of the left-key's action */
-#define move_left()							\
+#if defined(PASSPHRASE_TEXT)
+#  define move_left()							\
+  ({									\
+    point--;								\
+    while (point && ((*(rc + point) & 0xC0) == 0x80))			\
+      point--;								\
+  })
+#else
+#  define move_left()							\
   ({									\
     xprintf("\033[D");							\
     point--;								\
     while (point && ((*(rc + point) & 0xC0) == 0x80))			\
       point--;								\
   })
+#endif
 
 
 /* Implementation of the home-key's action */
-#define move_home()				\
+#if defined(PASSPHRASE_TEXT)
+#  define move_home()  (point = 0)
+#else
+#  define move_home()				\
   ({						\
     size_t n = 0;				\
     for (i = 0; i < point; i++)			\
@@ -168,10 +189,14 @@
     xprintf("\033[%zuD", n);			\
     point = 0;					\
   })
+#endif
 
 
 /* Implementation of the end-key's action */
-#define move_end()				\
+#if defined(PASSPHRASE_TEXT)
+#  define move_end()  (point = len)
+#else
+#  define move_end()				\
   ({						\
     size_t n = 0;				\
     for (i = point; i < len; i++)		\
@@ -180,6 +205,7 @@
     xprintf("\033[%zuC", n);			\
     point = len;				\
   })
+#endif
 
 
 /* Implementation of the delete-key's action upon the passphrase buffer */
@@ -218,25 +244,41 @@
 #endif
 
 
-#if defined(PASSPHRASE_MOVE)
-#  define append_char()  (xputchar(c), *(rc + len++) = (char)c, point++)
-#elif defined(PASSPHRASE_TEXT)
+#ifdef PASSPHRASE_MOVE
+#  define move_point()  (point++)
+#else
+#  define move_point()  ({ /* do nothing*/ })
+#endif
+
+
+#if defined(PASSPHRASE_TEXT)
 #  define append_char()							\
   ({									\
     if (len == 0)							\
       {									\
-	xprintf("\e[K%s%zn", PASSPHRASE_TEXT_NOT_EMPTY, &printed_len);	\
+    	xprintf("\033[K");						\
+	xprintf("%s%zn", PASSPHRASE_TEXT_NOT_EMPTY, &printed_len);	\
 	if (printed_len)						\
-	  xprintf("\e[%zuD", printed_len);				\
+	  xprintf("\033[%zuD", printed_len);				\
       }									\
     *(rc + len++) = (char)c;						\
+    move_point();							\
   })
 #else
-#  define append_char()	 (xputchar(c), *(rc + len++) = (char)c)
+#  define append_char()	 (xputchar(c), *(rc + len++) = (char)c, move_point())
 #endif
 
 
-#define insert_char()					\
+#if defined(PASSPHRASE_TEXT)
+#  define insert_char()					\
+  ({							\
+    for (i = len; i > point; i--)			\
+      *(rc + i) = *(rc + i - 1);			\
+    len++;						\
+    *(rc + point++) = (char)c;				\
+  })
+#else
+#  define insert_char()					\
   ({							\
     if ((c & 0xC0) != 0x80)				\
       xprintf("\033[@");				\
@@ -246,6 +288,7 @@
     len++;						\
     *(rc + point++) = (char)c;				\
   })
+#endif
 
 
 #define override_char()						\
@@ -289,8 +332,8 @@
 /* Implementation of the delete-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
 #  define print_delete()							\
-  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
-		   (printed_len ? xprintf("\e[%zuD", printed_len) : 0)))
+  (len ? 0 : (xprintf("\033[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
+	      (printed_len - 3 ? xprintf("\033[%zuD", printed_len - 3) : 0)))
 #else
 #  define print_delete()  xprintf("\033[P")
 #endif
@@ -299,8 +342,8 @@
 /* Implementation of the erase-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
 #  define print_erase()								\
-  (len == 0 ? 0 : (xprintf("\e[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
-		   (printed_len ? xprintf("\e[%zuD", printed_len) : 0)))
+  (len ? 0 : (xprintf("\033[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
+	      (printed_len - 3 ? xprintf("\033[%zuD", printed_len - 3) : 0)))
 #elif defined(PASSPHRASE_MOVE)
 #  define print_erase()  xprintf("\033[D\033[P")
 #elif defined(PASSPHRASE_STAR)
