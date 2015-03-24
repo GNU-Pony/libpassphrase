@@ -224,6 +224,10 @@ Do not hide the passphrase.
 @item @code{PASSPHRASE_STAR} @footnote{May not be combined with @code{PASSPHRASE_ECHO}.}
 Use `*' for each character instead of disabling echoing.
 
+@item @code{PASSPHRASE_TEXT} @footnote{May not be combined with @code{PASSPHRASE_TEXT}.}
+Use the texts `(empty)' and `(not empty)' to describe whether
+anything has been entered or not the instead of disabling echoing.
+
 @item @code{PASSPHRASE_REALLOC}
 Soften security by using @code{realloc} instead of
 using @code{malloc} and wiping the passphrase from

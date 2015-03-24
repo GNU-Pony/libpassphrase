@@ -32,6 +32,7 @@ PKGNAME ?= libpassphrase
 OPTIONS ?= 
 # PASSPHRASE_ECHO:      Do not hide the passphrase
 # PASSPHRASE_STAR:      Use '*' for each character instead of no echo
+# PASSPHRASE_TEXT:      Use '(empty)' and '(not empty)' instead of no echo
 # PASSPHRASE_REALLOC:   Soften security by using `realloc`
 # PASSPHRASE_MOVE:      Enable move of point
 # PASSPHRASE_INSERT:    Enable insert mode
