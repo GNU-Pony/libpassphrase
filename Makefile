@@ -134,23 +134,23 @@ info: libpassphrase.info
 .PHONY: pdf
 pdf: libpassphrase.pdf
 %.pdf: info/%.texinfo info/fdl.texinfo
-	mkdir -p obj
-	cd obj ; yes X | texi2pdf ../$<
-	mv obj/$@ $@
+	@mkdir -p obj/pdf
+	cd obj/pdf ; yes X | texi2pdf ../../$<
+	mv obj/pdf/$@ $@
 
 .PHONY: dvi
 dvi: libpassphrase.dvi
 %.dvi: info/%.texinfo info/fdl.texinfo
-	mkdir -p obj
-	cd obj ; yes X | $(TEXI2DVI) ../$<
-	mv obj/$@ $@
+	@mkdir -p obj/dvi
+	cd obj/dvi ; yes X | $(TEXI2DVI) ../../$<
+	mv obj/dvi/$@ $@
 
 .PHONY: ps
 ps: libpassphrase.ps
 %.ps: info/%.texinfo info/fdl.texinfo
-	mkdir -p obj
-	cd obj ; yes X | texi2pdf --ps ../$<
-	mv obj/$@ $@
+	@mkdir -p obj/ps
+	cd obj/ps ; yes X | texi2pdf --ps ../../$<
+	mv obj/ps/$@ $@
 
 
 .PHONY: install
