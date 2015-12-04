@@ -33,14 +33,14 @@ int main(int argc, char** argv)
   char* passphrase_;
   
   /* Hide the passphrase */
-  passphrase_disable_echo();
+  passphrase_disable_echo1(0);
   
   /* Do things needed before reading the passphrase */
   printf("Passphrase: ");
   fflush(stdout);
   
   /* Read the passphrase */
-  passphrase = passphrase_read();
+  passphrase = passphrase_read2(0, 0);
   if (passphrase == NULL)
     {
       /* Something went wrong, print what and exit */
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
   free(passphrase_);
   
   /* Stop hiding user input */
-  passphrase_reenable_echo();
+  passphrase_reenable_echo1(0);
   
   /* End of program */
   return 0;

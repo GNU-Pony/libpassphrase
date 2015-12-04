@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 
+#define PASSPHRASE_USE_DEPRECATED
 #include "passphrase.h"
 #include "passphrase_helper.h"
 
@@ -57,23 +58,31 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
 #endif /* !PASSPHRASE_REALLOC */
 
 
+static int fdgetc(int fd)
+{
+  unsigned char c;
+  if (read(fd, &c, sizeof(c)) <= 0)
+    return -1;
+  return (int)c;
+}
+
 
 #if defined(PASSPHRASE_DEDICATED) && defined(PASSPHRASE_MOVE)
-static int get_dedicated_control_key(void)
+static int get_dedicated_control_key(int fdin)
 {
-  int c = getchar();
+  int c = fdgetc(fdin);
   if (c == 'O')
     {
-      c = getchar();
+      c = fdgetc(fdin);
       if (c == 'H')  return KEY_HOME;
       if (c == 'F')  return KEY_END;
     }
   else if (c == '[')
     {
-      c = getchar();
+      c = fdgetc(fdin);
       if (c == 'C')  return KEY_RIGHT;
       if (c == 'D')  return KEY_LEFT;
-      if (('1' <= c) && (c <= '4') && (getchar() == '~'))
+      if (('1' <= c) && (c <= '4') && (fdgetc(fdin) == '~'))
 	return -(c - '0');
     }
   return 0;
@@ -83,13 +92,15 @@ static int get_dedicated_control_key(void)
 
 
 #ifdef PASSPHRASE_MOVE
-static int get_key(int c)
+static int get_key(int c, int fdin)
 {
 # ifdef PASSPHRASE_DEDICATED
-  if (c == '\033')             return get_dedicated_control_key();
+  if (c == '\033')             return get_dedicated_control_key(fdin);
+# else /* PASSPHRASE_DEDICATED */
+  (void) fdin;
 # endif /* PASSPHRASE_DEDICATED */
   if ((c == 8) || (c == 127))  return KEY_ERASE;
-  if ((c < 0) || (c >= ' '))   return ((int)c) & 255;
+  if ((c < 0) || (c >= ' '))   return c & 255;
 # ifdef PASSPHRASE_CONTROL
   if (c == 'A' - '@')          return KEY_HOME;
   if (c == 'B' - '@')          return KEY_LEFT;
@@ -106,9 +117,22 @@ static int get_key(int c)
 /**
  * Reads the passphrase from stdin
  * 
- * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
+ * @return  The passphrase, should be wiped and `free`:ed, `NULL` on error
  */
 char* passphrase_read(void)
+{
+  return passphrase_read2(STDIN_FILENO, 0);
+}
+
+
+/**
+ * Reads the passphrase from stdin
+ * 
+ * @param   fdin   File descriptor for input
+ * @param   flags  Settings
+ * @return         The passphrase, should be wiped and `free`:ed, `NULL` on error
+ */
+char* passphrase_read2(int fdin, int flags)
 {
   char* rc = malloc(START_PASSPHRASE_LIMIT * sizeof(char));
   size_t size = START_PASSPHRASE_LIMIT;
@@ -127,6 +151,7 @@ char* passphrase_read(void)
 #ifdef PASSPHRASE_MOVE
   int cc;
 #endif
+  (void) flags;
   
   if (rc == NULL)
     return NULL;
@@ -142,12 +167,12 @@ char* passphrase_read(void)
      that in X.org) and can be echoed into stdin by the kernel. */
   for (;;)
     {
-      c = getchar();
+      c = fdgetc(fdin);
       if ((c < 0) || (c == '\n'))  break;
       if (c == 0)                  continue;
       
 #if defined(PASSPHRASE_MOVE)
-      cc = get_key(c);
+      cc = get_key(c, fdin);
       if (cc > 0)
 	{
 	  c = (char)cc;
@@ -266,22 +291,13 @@ void passphrase_wipe(volatile char* ptr, size_t n)
     *(ptr + i) = 0;
 }
 
+
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
 void passphrase_disable_echo(void)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
-  struct termios stty;
-  
-  tcgetattr(STDIN_FILENO, &stty);
-  saved_stty = stty;
-  stty.c_lflag &= (tcflag_t)~ECHO;
-# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
-  stty.c_lflag &= (tcflag_t)~ICANON;
-# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+  passphrase_disable_echo1(STDIN_FILENO);
 }
 
 
@@ -290,10 +306,46 @@ void passphrase_disable_echo(void)
  */
 void passphrase_reenable_echo(void)
 {
+  passphrase_reenable_echo1(STDIN_FILENO);
+}
+
+/**
+ * Disable echoing and do anything else to the terminal settnings `passphrase_read2` requires
+ * 
+ * @param  fdin  File descriptor for input
+ */
+void passphrase_disable_echo1(int fdin)
+{
 #if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
+  struct termios stty;
+  
+  tcgetattr(fdin, &stty);
+  saved_stty = stty;
+  stty.c_lflag &= (tcflag_t)~ECHO;
+# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
+  stty.c_lflag &= (tcflag_t)~ICANON;
+# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
+  tcsetattr(fdin, TCSAFLUSH, &stty);
+#else /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+  (void) fdin;
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+}
+
+
+/**
+ * Undo the actions of `passphrase_disable_echo1`
+ * 
+ * @param  fdin  File descriptor for input
+ */
+void passphrase_reenable_echo1(int fdin)
+{
+#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
+  tcsetattr(fdin, TCSAFLUSH, &saved_stty);
+#else /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
+  (void) fdin;
 #endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
 }
+
 
 #ifdef __GNUC__
 # pragma GCC diagnostic pop

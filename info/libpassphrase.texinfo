@@ -105,33 +105,53 @@ Including @file{passphrase.h} gives you three functions:
 
 @table @code
 
-@item  void passphrase_disable_echo(void)
-Invoking @code{passphrase_disable_echo} will hide
+@item  void passphrase_disable_echo1(int fdin)
+@itemx void passphrase_disable_echo(void)
+Invoking @code{passphrase_disable_echo1} will hide
 the user input in the terminal (unless passphrase
 hiding is diabled). This is the first thing you
-should call.
+should call. @code{fdin} should be a file descriptor
+to the terminal. One can be acquired by opening
+@file{/dev/tty}.
 
-@item  char* passphrase_read(void)
-@code{passphrase_read} reads the passphrase
-from standard input. On error @code{NULL}
+@code{passphrase_disable_echo} is deprecated
+and is equivalent to
+@code{passphrase_disable_echo1(STDIN_FILENO)}.
+
+@item  char* passphrase_read2(int fdin, int flags)
+@itemx char* passphrase_read(void)
+@code{passphrase_read2} reads the passphrase
+from the terminal. On error @code{NULL}
 will be returned, otherwise a NUL-terminated
-passphrase will be returned.
+passphrase will be returned. @code{fdin} should
+be a file descriptor to the terminal. One can
+be acquired by opening @file{/dev/tty}.
 
 When you are done with the returned passphrase
 you should wipe it and free it.
 
-@item  void passphrase_reenable_echo(void)
+@code{passphrase_read} is deprecated
+and is equivalent to
+@code{passphrase_read2(STDIN_FILENO, 0)}.
+
+@item  void passphrase_reenable_echo1(int fdin)
+@itemx void passphrase_reenable_echo(void)
 When you have read the passphrase you should
-invoke @code{passphrase_reenable_echo}. It will
+invoke @code{passphrase_reenable_echo1}. It will
 revert all settings to the terminal made by
-@code{passphrase_disable_echo}. If you have
+@code{passphrase_disable_echo1}. If you have
 made settings changes to the terminal after
-@code{passphrase_reenable_echo} but before
-@code{passphrase_disable_echo}, those change
-may be lost as @code{passphrase_disable_echo}
+@code{passphrase_reenable_echo1} but before
+@code{passphrase_disable_echo1}, those change
+may be lost as @code{passphrase_disable_echo1}
 saves all settings before changing them and
-@code{passphrase_reenable_echo} applies to
-saved settings.
+@code{passphrase_reenable_echo1} applies to
+saved settings. @code{fdin} should be a file
+descriptor to the terminal.
+
+@code{passphrase_reenable_echo} is deprecated
+and is equivalent to
+@code{passphrase_reenable_echo1(STDIN_FILENO)}.
 
 @item  void passphrase_wipe(char*, size_t)
 When you are done using passhprase you should

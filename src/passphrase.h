@@ -19,13 +19,30 @@
 #ifndef PASSPHRASE_H
 #define PASSPHRASE_H
 
+#if defined(__GNUC__) && !defined(PASSPHRASE_USE_DEPRECATED)
+# define PASSPHRASE_DEPRECATED(MSG)  __attribute__((__deprecated__(MSG)))
+#else
+# define PASSPHRASE_DEPRECATED(MSG)  /* ignore */
+#endif
+
+
 
 /**
  * Reads the passphrase from stdin
  * 
- * @return  The passphrase, should be wiped `free`:ed, `NULL` on error
+ * @return  The passphrase, should be wiped and `free`:ed, `NULL` on error
  */
-extern char* passphrase_read(void);
+PASSPHRASE_DEPRECATED("Please use 'passphrase_read2' instead.")
+char* passphrase_read(void);
+
+/**
+ * Reads the passphrase
+ * 
+ * @param   fdin   File descriptor for input
+ * @param   flags  Settings
+ * @return         The passphrase, should be wiped and `free`:ed, `NULL` on error
+ */
+char* passphrase_read2(int, int);
 
 /**
  * Forcable write NUL characters to a passphrase
@@ -33,18 +50,37 @@ extern char* passphrase_read(void);
  * @param  ptr  The password to wipe
  * @param  n    The number of characters to wipe
  */
-extern void passphrase_wipe(volatile char*, size_t);
+void passphrase_wipe(volatile char*, size_t);
 
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
-extern void passphrase_disable_echo(void);
+PASSPHRASE_DEPRECATED("Please use 'passphrase_disable_echo1' instead.")
+void passphrase_disable_echo(void);
 
 /**
  * Undo the actions of `passphrase_disable_echo`
  */
-extern void passphrase_reenable_echo(void);
+PASSPHRASE_DEPRECATED("Please use 'passphrase_reenable_echo1' instead.")
+void passphrase_reenable_echo(void);
 
+/**
+ * Disable echoing and do anything else to the terminal settnings `passphrase_read2` requires
+ * 
+ * @param  fdin  File descriptor for input
+ */
+void passphrase_disable_echo1(int);
+
+/**
+ * Undo the actions of `passphrase_disable_echo1`
+ * 
+ * @param  fdin  File descriptor for input
+ */
+void passphrase_reenable_echo1(int);
+
+
+
+#undef PASSPHRASE_DEPRECATED
 
 #endif
 

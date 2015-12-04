@@ -118,11 +118,11 @@ bin/libpassphrase.a: obj/passphrase.o
 bin/test: bin/libpassphrase.so obj/test.o
 	$(CC) $(LD_FLAGS) -Lbin -lpassphrase -o "$@" obj/test.o $(LDFLAGS)
 
-obj/passphrase.o: src/passphrase.c src/passphrase.h src/passphrase_helper.h
+obj/passphrase.o: src/passphrase.c src/*.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
-obj/test.o: src/test.c src/test.h
+obj/test.o: src/test.c src/test.h src/passphrase.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
