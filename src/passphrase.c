@@ -169,9 +169,9 @@ char* passphrase_read(void)
       else if (cc == KEY_INSERT)                      insert ^= 1;
 # endif /* PASSPHRASE_INSERT && PASSPHRASE_OVERRIDE */
 # ifdef PASSPHRASE_DELETE
-      else if ((cc == KEY_DELETE) && (len != point))  delete_next(), print_delete();
+      else if ((cc == KEY_DELETE) && (len != point))  { delete_next(); print_delete(); }
 # endif /* PASSPHRASE_DELETE */
-      else if ((cc == KEY_ERASE) && point)            erase_prev(), print_erase();
+      else if ((cc == KEY_ERASE) && point)            { erase_prev(); print_erase(); }
       else if ((cc == KEY_HOME)  && (point != 0))     move_home();
       else if ((cc == KEY_END)   && (point != len))   move_end();
       else if ((cc == KEY_RIGHT) && (point != len))   move_right();
