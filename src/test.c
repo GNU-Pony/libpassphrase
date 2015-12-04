@@ -16,7 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "test.h"
+#include "passphrase.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 
 /**
@@ -30,21 +36,30 @@ int main(int argc, char** argv)
 {
   /* Variables for the passphrase */
   char* passphrase;
-  char* passphrase_;
+  
+  /* Get file descriptor to the terminal */
+  int fd = open("/dev/tty", O_RDONLY);
+  if (fd == -1)
+    {
+      perror(*argv);
+      return 1;
+    }
   
   /* Hide the passphrase */
-  passphrase_disable_echo1(0);
+  passphrase_disable_echo1(fd);
   
   /* Do things needed before reading the passphrase */
   printf("Passphrase: ");
   fflush(stdout);
   
   /* Read the passphrase */
-  passphrase = passphrase_read2(0, 0);
+  passphrase = passphrase_read2(fd, PASSPHRASE_READ_NEW |
+				    PASSPHRASE_READ_SCREEN_FREE);
   if (passphrase == NULL)
     {
       /* Something went wrong, print what and exit */
       perror(*argv);
+      close(fd);
       return 1;
     }
   
@@ -52,15 +67,14 @@ int main(int argc, char** argv)
   printf("You entered: %s\n", passphrase);
   
   /* Wipe and free the passphrase */
-  passphrase_ = passphrase;
-  while (*passphrase)
-    *passphrase++ = 0;
-  free(passphrase_);
+  passphrase_wipe(passphrase, strlen(passphrase));
+  free(passphrase);
   
   /* Stop hiding user input */
   passphrase_reenable_echo1(0);
   
   /* End of program */
+  close(fd);
   return 0;
   
   /* `argc` was never used */

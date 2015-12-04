@@ -122,7 +122,7 @@ obj/passphrase.o: src/passphrase.c src/*.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
-obj/test.o: src/test.c src/test.h src/passphrase.h
+obj/test.o: src/test.c src/passphrase.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 

@@ -129,7 +129,13 @@ char* passphrase_read(void)
  * Reads the passphrase from stdin
  * 
  * @param   fdin   File descriptor for input
- * @param   flags  Settings
+ * @param   flags  Settings, a combination of the constants:
+ *                 * PASSPHRASE_READ_EXISTING
+ *                 * PASSPHRASE_READ_NEW
+ *                 * PASSPHRASE_READ_SCREEN_FREE
+ *                 * PASSPHRASE_READ_BELOW_FREE
+ *                 Invalid input is ignored, to make use the
+ *                 application will work.
  * @return         The passphrase, should be wiped and `free`:ed, `NULL` on error
  */
 char* passphrase_read2(int fdin, int flags)

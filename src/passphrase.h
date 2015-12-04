@@ -19,11 +19,53 @@
 #ifndef PASSPHRASE_H
 #define PASSPHRASE_H
 
+#include <stddef.h>
+
 #if defined(__GNUC__) && !defined(PASSPHRASE_USE_DEPRECATED)
 # define PASSPHRASE_DEPRECATED(MSG)  __attribute__((__deprecated__(MSG)))
 #else
 # define PASSPHRASE_DEPRECATED(MSG)  /* ignore */
 #endif
+
+
+
+/**
+ * `passphrase_read2` shall not do any thing
+ * special, just accept the passphrase. This should
+ * be used when getting authentication.
+ * Should not be combined with `PASSPHRASE_READ_NEW`.
+ */
+#define PASSPHRASE_READ_EXISTING  0
+
+/**
+ * `passphrase_read2` shall draw a pasphrase
+ * strenght meter if such capability is
+ * available. This should be used when create
+ * a new passphrase.
+ * Should not be combined with `PASSPHRASE_READ_EXISTING`.
+ */
+#define PASSPHRASE_READ_NEW  1
+
+/**
+ * `passphrase_read2` may do as it please with the
+ * the screen. This is only used if combined with
+ * `PASSPHRASE_READ_NEW` and not with
+ * `PASSPHRASE_READ_BELOW_FREE`. `passphrase_read2`
+ * will create make a line below the new current
+ * line and use that line to draw the passphrase
+ * strength meter if such capability is available.
+ */
+#define PASSPHRASE_READ_SCREEN_FREE  2
+
+/**
+ * `passphrase_read2` may do as it please with the
+ * line below the current line. This is only used
+ * if combined with `PASSPHRASE_READ_NEW`.
+ * `passphrase_read2` will draw the passphrase
+ * strength meter on the line below if such
+ * capability is available.
+ */
+#define PASSPHRASE_READ_BELOW_FREE  4
 
 
 
@@ -39,7 +81,13 @@ char* passphrase_read(void);
  * Reads the passphrase
  * 
  * @param   fdin   File descriptor for input
- * @param   flags  Settings
+ * @param   flags  Settings, a combination of the constants:
+ *                 * PASSPHRASE_READ_EXISTING
+ *                 * PASSPHRASE_READ_NEW
+ *                 * PASSPHRASE_READ_SCREEN_FREE
+ *                 * PASSPHRASE_READ_BELOW_FREE
+ *                 Invalid input is ignored, to make use the
+ *                 application will work.
  * @return         The passphrase, should be wiped and `free`:ed, `NULL` on error
  */
 char* passphrase_read2(int, int);
