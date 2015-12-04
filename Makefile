@@ -127,30 +127,32 @@ obj/test.o: src/test.c src/test.h
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
 .PHONY: info
-info: libpassphrase.info
-%.info: info/%.texinfo
+info: bin/libpassphrase.info
+bin/%.info: info/%.texinfo
+	@mkdir -p bin
 	makeinfo "$<"
+	mv $*.info $@
 
 .PHONY: pdf
-pdf: libpassphrase.pdf
-%.pdf: info/%.texinfo info/fdl.texinfo
-	@mkdir -p obj/pdf
-	cd obj/pdf ; yes X | texi2pdf ../../$<
-	mv obj/pdf/$@ $@
+pdf: bin/libpassphrase.pdf
+bin/%.pdf: info/%.texinfo info/fdl.texinfo
+	@mkdir -p obj/pdf bin
+	cd obj/pdf && texi2pdf ../../$< < /dev/null
+	mv obj/pdf/$*.pdf $@
 
 .PHONY: dvi
-dvi: libpassphrase.dvi
-%.dvi: info/%.texinfo info/fdl.texinfo
-	@mkdir -p obj/dvi
-	cd obj/dvi ; yes X | $(TEXI2DVI) ../../$<
-	mv obj/dvi/$@ $@
+dvi: bin/libpassphrase.dvi
+bin/%.dvi: info/%.texinfo info/fdl.texinfo
+	@mkdir -p obj/dvi bin
+	cd obj/dvi && $(TEXI2DVI) ../../$< < /dev/null
+	mv obj/dvi/$*.dvi $@
 
 .PHONY: ps
-ps: libpassphrase.ps
-%.ps: info/%.texinfo info/fdl.texinfo
-	@mkdir -p obj/ps
-	cd obj/ps ; yes X | texi2pdf --ps ../../$<
-	mv obj/ps/$@ $@
+ps: bin/libpassphrase.ps
+bin/%.ps: info/%.texinfo info/fdl.texinfo
+	@mkdir -p obj/ps bin
+	cd obj/ps && texi2pdf --ps ../../$< < /dev/null
+	mv obj/ps/$*.ps $@
 
 
 .PHONY: install
@@ -189,22 +191,22 @@ install-license:
 install-doc: install-info install-pdf install-ps install-dvi
 
 .PHONY: install-info
-install-info: libpassphrase.info
+install-info: bin/libpassphrase.info
 	install -dm755 -- "$(DESTDIR)$(INFODIR)"
 	install  -m644 -- "$<" "$(DESTDIR)$(INFODIR)/$(PKGNAME).info"
 
 .PHONY: install-pdf
-install-pdf: libpassphrase.pdf
+install-pdf: bin/libpassphrase.pdf
 	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
 	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).pdf"
 
 .PHONY: install-ps
-install-ps: libpassphrase.ps
+install-ps: bin/libpassphrase.ps
 	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
 	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).ps"
 
 .PHONY: install-dvi
-install-dvi: libpassphrase.dvi
+install-dvi: bin/libpassphrase.dvi
 	install -dm755 -- "$(DESTDIR)$(DOCDIR)"
 	install  -m644 -- "$<" "$(DESTDIR)$(DOCDIR)/$(PKGNAME).dvi"
 
@@ -225,5 +227,5 @@ uninstall:
 
 .PHONY: clean
 clean:
-	-rm -r bin obj *.info *.pdf *.ps *.dvi
+	-rm -r bin obj
 
