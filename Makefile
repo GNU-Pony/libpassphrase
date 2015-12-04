@@ -5,31 +5,31 @@
 
 
 # The package path prefix, if you want to install to another root, set DESTDIR to that root
-PREFIX ?= /usr
+PREFIX = /usr
 # The library path excluding prefix
-LIB ?= /lib
+LIB = /lib
 # The resource path excluding prefix
-DATA ?= /share
+DATA = /share
 # The library header path excluding prefix
-INCLUDE ?= /include
+INCLUDE = /include
 # The library path including prefix
-LIBDIR ?= $(PREFIX)$(LIB)
+LIBDIR = $(PREFIX)$(LIB)
 # The resource path including prefix
-DATADIR ?= $(PREFIX)$(DATA)
+DATADIR = $(PREFIX)$(DATA)
 # The library header path including prefix
-INCLUDEDIR ?= $(PREFIX)$(INCLUDE)
+INCLUDEDIR = $(PREFIX)$(INCLUDE)
 # The generic documentation path including prefix
-DOCDIR ?= $(DATADIR)/doc
+DOCDIR = $(DATADIR)/doc
 # The info manual documentation path including prefix
-INFODIR ?= $(DATADIR)/info
+INFODIR = $(DATADIR)/info
 # The license base path including prefix
-LICENSEDIR ?= $(DATADIR)/licenses
+LICENSEDIR = $(DATADIR)/licenses
 
 # The name of the package as it should be installed
-PKGNAME ?= libpassphrase
+PKGNAME = libpassphrase
 
 # Options with which to compile the library
-OPTIONS ?= 
+OPTIONS = 
 # PASSPHRASE_ECHO:       Do not hide the passphrase
 # PASSPHRASE_STAR:       Use "*" for each character instead of no echo
 # PASSPHRASE_TEXT:       Use "(empty)" and "(not empty)" instead of no echo
@@ -44,11 +44,11 @@ OPTIONS ?=
 # PASSPHRASE_INVALID:    Prevent duplication of non-initialised memory
 
 # Text to use instead of "*"
-PASSPHRASE_STAR_CHAR      ?= \*
+PASSPHRASE_STAR_CHAR      = *
 # Text to use instead of "(empty)"
-PASSPHRASE_TEXT_EMPTY     ?= (empty)
+PASSPHRASE_TEXT_EMPTY     = (empty)
 # Text to use instead of "(not empty)"
-PASSPHRASE_TEXT_NOT_EMPTY ?= (not empty)
+PASSPHRASE_TEXT_NOT_EMPTY = (not empty)
 
 QUOTED_OPTIONS = PASSPHRASE_STAR_CHAR PASSPHRASE_TEXT_EMPTY PASSPHRASE_TEXT_NOT_EMPTY
 
