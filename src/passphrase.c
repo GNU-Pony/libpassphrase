@@ -248,7 +248,7 @@ char* passphrase_read(void)
 /**
  * Used to make sure that `passphrase_wipe` is not optimised away even within this library
  */
-volatile sig_atomic_t passphrase_wipe_volatile = 1;
+volatile sig_atomic_t passphrase_wipe_volatile________________ = 1;
 
 /**
  * Forcable write NUL characters to a passphrase
@@ -256,10 +256,13 @@ volatile sig_atomic_t passphrase_wipe_volatile = 1;
  * @param  ptr  The password to wipe
  * @param  n    The number of characters to wipe
  */
+#ifdef __GNUC__
+__attribute__((optimize("-O0")))
+#endif
 void passphrase_wipe(volatile char* ptr, size_t n)
 {
   size_t i;
-  for (i = 0; (i < n) && passphrase_wipe_volatile; i++)
+  for (i = 0; (i < n) && passphrase_wipe_volatile________________; i++)
     *(ptr + i) = 0;
 }
 
