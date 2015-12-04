@@ -22,28 +22,28 @@
 
 /* Fix conflicting configurations */
 #if defined(PASSPHRASE_TEXT) && defined(PASSPHRASE_STAR)
-#  warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_STAR
-#  undef PASSPHRASE_TEXT
+# warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_STAR
+# undef PASSPHRASE_TEXT
 #endif
 #if defined(PASSPHRASE_STAR) && defined(PASSPHRASE_ECHO)
-#  warning You cannot have both PASSPHRASE_STAR and PASSPHRASE_ECHO
-#  undef PASSPHRASE_ECHO
+# warning You cannot have both PASSPHRASE_STAR and PASSPHRASE_ECHO
+# undef PASSPHRASE_ECHO
 #endif
 #if defined(PASSPHRASE_TEXT) && defined(PASSPHRASE_ECHO)
-#  warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_ECHO
-#  undef PASSPHRASE_ECHO
+# warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_ECHO
+# undef PASSPHRASE_ECHO
 #endif
 
 
 /* Default texts */
 #ifndef PASSPHRASE_STAR_CHAR
-#  define PASSPHRASE_STAR_CHAR  "*"
+# define PASSPHRASE_STAR_CHAR  "*"
 #endif
 #ifndef PASSPHRASE_TEXT_EMPTY
-#  define PASSPHRASE_TEXT_EMPTY  "(empty)"
+# define PASSPHRASE_TEXT_EMPTY  "(empty)"
 #endif
 #ifndef PASSPHRASE_TEXT_NOT_EMPTY
-#  define PASSPHRASE_TEXT_NOT_EMPTY  "(not empty)"
+# define PASSPHRASE_TEXT_NOT_EMPTY  "(not empty)"
 #endif
 
 
@@ -101,61 +101,61 @@
 
 /* Custom fflush and fprintf */
 #if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT)
-#  define xprintf(...)  fprintf(stderr, __VA_ARGS__)
-#  define xflush()      fflush(stderr)
+# define xprintf(...)  fprintf(stderr, __VA_ARGS__)
+# define xflush()      fflush(stderr)
 #elif defined(PASSPHRASE_MOVE) && !defined(PASSPHRASE_ECHO)
-#  define xprintf(...)  ({ /* do nothing */ })
-#  define xflush()      ({ /* do nothing */ })
+# define xprintf(...)  ({ /* do nothing */ })
+# define xflush()      ({ /* do nothing */ })
 #elif defined(PASSPHRASE_MOVE)
-#  define xprintf(...)  fprintf(stderr, __VA_ARGS__)
-#  define xflush()      fflush(stderr)
+# define xprintf(...)  fprintf(stderr, __VA_ARGS__)
+# define xflush()      fflush(stderr)
 #else
-#  define xflush()      fflush(stderr)
+# define xflush()      fflush(stderr)
 #endif
 
 
 
 /* Custom putchar */
 #if defined(PASSPHRASE_STAR)
-#  define xputchar(C)  (((C & 0xC0) != 0x80) ? fprintf(stderr, "%s", PASSPHRASE_STAR_CHAR) : 0)
+# define xputchar(C)  (((C & 0xC0) != 0x80) ? fprintf(stderr, "%s", PASSPHRASE_STAR_CHAR) : 0)
 #elif defined(PASSPHRASE_ECHO) && defined(PASSPHRASE_MOVE)
-#  define xputchar(C)  fputc(C, stderr)
+# define xputchar(C)  fputc(C, stderr)
 #else
-#  define xputchar(C)  ({ /* be silent */ })
+# define xputchar(C)  ({ /* be silent */ })
 #endif
 
 
 
 /* Is insert active by default? */
 #if defined(PASSPHRASE_OVERRIDE) && defined(PASSPHRASE_INSERT)
-#  if defined(DEFAULT_INSERT)
-#    define DEFAULT_INSERT_VALUE  1
-#  else
-#    define DEFAULT_INSERT_VALUE  0
-#  endif
+# if defined(DEFAULT_INSERT)
+#  define DEFAULT_INSERT_VALUE  1
+# else
+#  define DEFAULT_INSERT_VALUE  0
+# endif
 #endif
 
 
 
 /* PASSPHRASE_INVALID's affect */
 #if defined(PASSPHRASE_INVALID)
-#  define null_terminate()  (*(rc + len) = 0)
+# define null_terminate()  (*(rc + len) = 0)
 #else
-#  define null_terminate()  ({ /* do nothing*/ })
+# define null_terminate()  ({ /* do nothing*/ })
 #endif
 
 
 
 /* Implementation of the right-key's action */
 #if defined(PASSPHRASE_TEXT)
-#  define move_right()							\
+# define move_right()							\
   ({									\
     do									\
       point++;								\
     while ((len != point) && ((*(rc + point) & 0xC0) == 0x80));		\
   })
 #else
-#  define move_right()							\
+# define move_right()							\
   ({									\
     xprintf("\033[C");							\
     do									\
@@ -167,14 +167,14 @@
 
 /* Implementation of the left-key's action */
 #if defined(PASSPHRASE_TEXT)
-#  define move_left()							\
+# define move_left()							\
   ({									\
     point--;								\
     while (point && ((*(rc + point) & 0xC0) == 0x80))			\
       point--;								\
   })
 #else
-#  define move_left()							\
+# define move_left()							\
   ({									\
     xprintf("\033[D");							\
     point--;								\
@@ -186,9 +186,9 @@
 
 /* Implementation of the home-key's action */
 #if defined(PASSPHRASE_TEXT)
-#  define move_home()  (point = 0)
+# define move_home()  (point = 0)
 #else
-#  define move_home()				\
+# define move_home()				\
   ({						\
     size_t n = 0;				\
     for (i = 0; i < point; i++)			\
@@ -202,9 +202,9 @@
 
 /* Implementation of the end-key's action */
 #if defined(PASSPHRASE_TEXT)
-#  define move_end()  (point = len)
+# define move_end()  (point = len)
 #else
-#  define move_end()				\
+# define move_end()				\
   ({						\
     size_t n = 0;				\
     for (i = point; i < len; i++)		\
@@ -232,7 +232,7 @@
 
 /* Implementation of the erase-key's action upon the passphrase buffer */
 #if defined(PASSPHRASE_MOVE)
-#define erase_prev()						\
+# define erase_prev()						\
   ({								\
     char redo = 1;						\
     null_terminate();						\
@@ -248,19 +248,19 @@
       }								\
   })
 #else
-#  define erase_prev()  (*(rc + --len) = 0)
+# define erase_prev()  (*(rc + --len) = 0)
 #endif
 
 
 #ifdef PASSPHRASE_MOVE
-#  define move_point()  (point++)
+# define move_point()  (point++)
 #else
-#  define move_point()  ({ /* do nothing*/ })
+# define move_point()  ({ /* do nothing*/ })
 #endif
 
 
 #if defined(PASSPHRASE_TEXT)
-#  define append_char()							\
+# define append_char()							\
   ({									\
     if (len == 0)							\
       {									\
@@ -273,12 +273,12 @@
     move_point();							\
   })
 #else
-#  define append_char()	 (xputchar(c), *(rc + len++) = (char)c, move_point())
+# define append_char()	 (xputchar(c), *(rc + len++) = (char)c, move_point())
 #endif
 
 
 #if defined(PASSPHRASE_TEXT)
-#  define insert_char()					\
+# define insert_char()					\
   ({							\
     for (i = len; i > point; i--)			\
       *(rc + i) = *(rc + i - 1);			\
@@ -286,7 +286,7 @@
     *(rc + point++) = (char)c;				\
   })
 #else
-#  define insert_char()					\
+# define insert_char()					\
   ({							\
     if ((c & 0xC0) != 0x80)				\
       xprintf("\033[@");				\
@@ -339,23 +339,23 @@
 
 /* Implementation of the delete-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
-#  define print_delete()							\
+# define print_delete()								\
   (len ? 0 : (xprintf("\033[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
 	      (printed_len - 3 ? xprintf("\033[%zuD", printed_len - 3) : 0)))
 #else
-#  define print_delete()  xprintf("\033[P")
+# define print_delete()  xprintf("\033[P")
 #endif
 
 
 /* Implementation of the erase-key's action upon the display */
 #if defined(PASSPHRASE_TEXT)
-#  define print_erase()								\
+# define print_erase()								\
   (len ? 0 : (xprintf("\033[K%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len),	\
 	      (printed_len - 3 ? xprintf("\033[%zuD", printed_len - 3) : 0)))
 #elif defined(PASSPHRASE_MOVE)
-#  define print_erase()  xprintf("\033[D\033[P")
+# define print_erase()  xprintf("\033[D\033[P")
 #elif defined(PASSPHRASE_STAR)
-#  define print_erase()  xprintf("\033[D \033[D")
+# define print_erase()  xprintf("\033[D \033[D")
 #endif
 
 
