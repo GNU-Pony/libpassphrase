@@ -54,7 +54,7 @@ QUOTED_OPTIONS = PASSPHRASE_STAR_CHAR PASSPHRASE_TEXT_EMPTY PASSPHRASE_TEXT_NOT_
 
 
 # Optimisation settings for C code compilation
-OPTIMISE ?= -Os
+OPTIMISE = -Os
 # Warnings settings for C code compilation
 WARN = -Wall -Wextra -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include-dirs            \
        -Wtrampolines -Wfloat-equal -Wshadow -Wmissing-prototypes -Wmissing-declarations          \
