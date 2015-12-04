@@ -53,7 +53,7 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
   return rc;
 }
 #else /* !PASSPHRASE_REALLOC */
-#  define xrealloc(array, _cur_size, new_size)  realloc(array, (new_size) * sizeof(char))
+# define xrealloc(array, _cur_size, new_size)  realloc(array, (new_size) * sizeof(char))
 #endif /* !PASSPHRASE_REALLOC */
 
 
@@ -85,18 +85,18 @@ static int get_dedicated_control_key(void)
 #ifdef PASSPHRASE_MOVE
 static int get_key(int c)
 {
-#ifdef PASSPHRASE_DEDICATED
+# ifdef PASSPHRASE_DEDICATED
   if (c == '\033')             return get_dedicated_control_key();
-#endif /* PASSPHRASE_DEDICATED */
+# endif /* PASSPHRASE_DEDICATED */
   if ((c == 8) || (c == 127))  return KEY_ERASE;
   if ((c < 0) || (c >= ' '))   return ((int)c) & 255;
-#ifdef PASSPHRASE_CONTROL
+# ifdef PASSPHRASE_CONTROL
   if (c == 'A' - '@')          return KEY_HOME;
   if (c == 'B' - '@')          return KEY_LEFT;
   if (c == 'D' - '@')          return KEY_DELETE;
   if (c == 'E' - '@')          return KEY_END;
   if (c == 'F' - '@')          return KEY_RIGHT;
-#endif /* PASSPHRASE_CONTROL */
+# endif /* PASSPHRASE_CONTROL */
   return 0;
 }
 #endif /* PASSPHRASE_MOVE */
@@ -116,9 +116,9 @@ char* passphrase_read(void)
 #ifdef PASSPHRASE_MOVE
   size_t point = 0;
   size_t i = 0;
-#  if defined(PASSPHRASE_OVERRIDE) && defined(PASSPHRASE_INSERT)
+# if defined(PASSPHRASE_OVERRIDE) && defined(PASSPHRASE_INSERT)
   char insert = DEFAULT_INSERT_VALUE;
-#  endif /* PASSPHRASE_OVERRIDE && PASSPHRASE_INSERT */
+# endif /* PASSPHRASE_OVERRIDE && PASSPHRASE_INSERT */
 #endif /* PASSPHRASE_MOVE */
 #ifdef PASSPHRASE_TEXT
   size_t printed_len = 0;
@@ -153,24 +153,24 @@ char* passphrase_read(void)
 	  c = (char)cc;
 	  if (point == len)
 	    append_char();
-#  ifdef PASSPHRASE_INSERT
+# ifdef PASSPHRASE_INSERT
 	  else
-#    ifdef PASSPHRASE_OVERRIDE
-	    if (insert)
-#    endif /* PASSPHRASE_OVERRIDE */
-	      insert_char();
-#  endif /* PASSPHRASE_INSERT */
 #  ifdef PASSPHRASE_OVERRIDE
+	    if (insert)
+#  endif /* PASSPHRASE_OVERRIDE */
+	      insert_char();
+# endif /* PASSPHRASE_INSERT */
+# ifdef PASSPHRASE_OVERRIDE
 	    else
 	      override_char();
-#  endif /* PASSPHRASE_OVERRIDE */
+# endif /* PASSPHRASE_OVERRIDE */
 	}
-#  if defined(PASSPHRASE_INSERT) && defined(PASSPHRASE_OVERRIDE)
+# if defined(PASSPHRASE_INSERT) && defined(PASSPHRASE_OVERRIDE)
       else if (cc == KEY_INSERT)                      insert ^= 1;
-#  endif /* PASSPHRASE_INSERT && PASSPHRASE_OVERRIDE */
-#  ifdef PASSPHRASE_DELETE
+# endif /* PASSPHRASE_INSERT && PASSPHRASE_OVERRIDE */
+# ifdef PASSPHRASE_DELETE
       else if ((cc == KEY_DELETE) && (len != point))  delete_next(), print_delete();
-#  endif /* PASSPHRASE_DELETE */
+# endif /* PASSPHRASE_DELETE */
       else if ((cc == KEY_ERASE) && point)            erase_prev(), print_erase();
       else if ((cc == KEY_HOME)  && (point != 0))     move_home();
       else if ((cc == KEY_END)   && (point != len))   move_end();
@@ -185,11 +185,11 @@ char* passphrase_read(void)
 	  erase_prev();
 	  print_erase();
 	  xflush();
-#  ifdef DEBUG
+# ifdef DEBUG
 	  goto debug;
-#  else /* DEBUG */
+# else /* DEBUG */
 	  continue;
-#  endif /* DEBUG */
+# endif /* DEBUG */
 	}
       append_char();
       
@@ -206,8 +206,10 @@ char* passphrase_read(void)
 	}
       
 #ifdef DEBUG
+# ifdef __GNUC__
 #  pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wunused-label"
+#   pragma GCC diagnostic ignored "-Wunused-label"
+# endif
     debug:
       {
 	size_t n = 0;
@@ -234,9 +236,11 @@ char* passphrase_read(void)
 }
 
 
+#ifdef __GNUC__
 # pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
-#   pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
+#  pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
+#  pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
+#endif
 /* Must positively absolutely not be flagged as possible to optimise away as it depends on configurations,
    and programs that uses this library must not be forced to be recompiled if the library is reconfigured. */
 
@@ -270,9 +274,9 @@ void passphrase_disable_echo(void)
   tcgetattr(STDIN_FILENO, &stty);
   saved_stty = stty;
   stty.c_lflag &= (tcflag_t)~ECHO;
-#  if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
+# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
   stty.c_lflag &= (tcflag_t)~ICANON;
-#  endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
+# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
 #endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
 }
@@ -288,5 +292,7 @@ void passphrase_reenable_echo(void)
 #endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
 }
 
+#ifdef __GNUC__
 # pragma GCC diagnostic pop
+#endif
 
