@@ -19,8 +19,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/wait.h>
 
 #define PASSPHRASE_USE_DEPRECATED
@@ -44,6 +46,9 @@ struct passcheck_state
   pid_t pid;
   int flags;
 };
+
+static char* strength = NULL;
+static size_t strength_size = 0;
 #endif /* PASSPHRASE_METER */
 
 
@@ -111,23 +116,27 @@ static void passcheck_start(struct passcheck_state* state, int flags)
     {
       gid_t gid = getgid(), egid = getegid();
       uid_t uid = getuid(), euid = geteuid();
+      int fd;
       
       if ((state->pipe_rw[0] != STDIN_FILENO) && (state->pipe_rw[1] == STDIN_FILENO))
 	{
-	  pipe_rw[1] = dup(state->pipe_rw[1]);
-	  if (pipe_rw[1] == -1)
+	  fd = dup(state->pipe_rw[1]);
+	  if (fd == -1)
 	    goto child_fail;
-	  state->pipe_rw[1] = pipe_rw[1], pipe_rw[1] = -1;
+	  state->pipe_rw[1] = fd;
 	}
       for (i = 0; i <= 1; i++)
 	if (state->pipe_rw[i] != i)
 	  {
 	    close(i);
-	    pipe_rw[i] = dup2(state->pipe_rw[i], i);
-	    if (pipe_rw[i] == -1)
+	    fd = dup2(state->pipe_rw[i], i);
+	    if (fd == -1)
 	      goto child_fail;
-	    close(state->pipe_rw[i]), state->pipe_rw[i] = pipe_rw[i];
+	    close(state->pipe_rw[i]);
+	    state->pipe_rw[i] = fd;
 	  }
+      
+      close(STDERR_FILENO);
       
       if (egid != gid)
 	if (setregid(gid, gid) && gid)
@@ -168,6 +177,7 @@ static void passcheck_start(struct passcheck_state* state, int flags)
   state->flags = 0;
 }
 
+
 static void passcheck_stop(struct passcheck_state* state)
 {
   int _status;
@@ -178,19 +188,103 @@ static void passcheck_stop(struct passcheck_state* state)
   close(state->pipe_rw[0]);
   close(state->pipe_rw[1]);
   
+  free(strength), strength = NULL;
+  strength_size = 0;
+  
 rereap:
   if ((waitpid(state->pid, &_status, 0) == -1) && (errno == EINTR))
     goto rereap;
   
   /* TODO cleanup */
+  
+  state->flags = 0;
 }
 
-static void passcheck_update(struct passcheck_state* state, char* passphrase, size_t len)
+
+static void passcheck_update(struct passcheck_state* state, const char* passphrase, size_t len)
 {
+  size_t strength_ptr = 0;
+  ssize_t n;
+  int i;
+  void* new;
+  char* p;
+  unsigned long long int value;
+  
   if (state->flags == 0)
     return;
   
+  for (i = 0; i < 2; i++, passphrase = "\n", len = 1)
+    while (len)
+      {
+	n = write(state->pipe_rw[1], passphrase, len);
+	if (n < 0)
+	  {
+	    if (errno == EINTR)
+	      continue;
+	    goto fail;
+	  }
+	passphrase += (size_t)n;
+	len -= (size_t)n;
+      }
+  
+ again:
+  if (strength_ptr == strength_size)
+    {
+      strength_size = strength_size ? (strength_size << 1) : 8;
+      new = realloc(strength, strength_size * sizeof(char));
+      if (new == NULL)
+	goto fail;
+      strength = new;
+    }
+  n = read(state->pipe_rw[0], strength + strength_ptr, strength_size - 1 - strength_ptr);
+  if (n <= 0)
+    {
+      if (n && (errno == EINTR))
+	goto again;
+      goto fail;
+    }
+  strength_ptr += (size_t)n;
+  strength[strength_ptr] = '\0';
+  p = strpbrk(strength, " \t\r\f\n\v");
+  if (p == NULL)
+    goto again;
+  if (*p == '\033')
+    {
+      p = strpbrk(strength, "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm~");
+      if (p == NULL)
+	goto fail;
+      p++;
+    }
+  else
+    p = strength;
+  *(strpbrk(p, " \t\r\f\n\v\033")) = '\0';
+  errno = 0;
+  value = strtoull(p, NULL, 10);
+  if ((value == 0) && errno)
+    {
+      if (errno != ERANGE)
+	goto fail;
+      value = ULLONG_MAX;
+    }
+  while (memchr(strength, '\n', strength_ptr) == NULL)
+    {
+      strength_ptr = 0;
+      n = read(state->pipe_rw[0], strength, strength_size);
+      if (n <= 0)
+	{
+	  if (n && (errno == EINTR))
+	    goto again;
+	  goto fail;
+	}
+      strength_ptr = (size_t)n;
+    }
+  strength_ptr = 0;
+  
   /* TODO */
+  
+  return;
+ fail:
+  passcheck_stop(state);
 }
 #endif /* PASSPHRASE_METER */
 

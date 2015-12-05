@@ -154,7 +154,7 @@ be used when getting authentication. Should not
 be combined with @code{PASSPHRASE_READ_NEW}.
 @item PASSPHRASE_READ_NEW
 @code{passphrase_read2} shall draw a pasphrase
-strenght meter if such capability is available.
+strength meter if such capability is available.
 This should be used when create a new passphrase.
 Should not be combined with @code{PASSPHRASE_READ_EXISTING}.
 @item PASSPHRASE_READ_SCREEN_FREE
@@ -396,9 +396,9 @@ in @command{valgrind}.
 When the @code{PASSPHRASE_READ_METER} flag
 is used, and @code{PASSPHRASE_READ_SCREEN_FREE}
 or @code{PASSPHRASE_READ_BELOW_FREE}, use
-@command{passcheck} to evaluate the strenght
+@command{passcheck} to evaluate the strength
 of the passphrase and display a passphrase
-strenght meter. @command{passcheck} will be
+strength meter. @command{passcheck} will be
 started by the real user, not the effective
 user, and the real group.
 

@@ -39,7 +39,7 @@
 
 /**
  * `passphrase_read2` shall draw a pasphrase
- * strenght meter if such capability is
+ * strength meter if such capability is
  * available. This should be used when create
  * a new passphrase.
  * Should not be combined with `PASSPHRASE_READ_EXISTING`.
