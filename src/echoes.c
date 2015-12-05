@@ -47,6 +47,9 @@ static struct termios saved_stty;
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
  */
+#if defined(__GNUC__) && !defined(NEED_TERMIOS)
+__attribute__((const))
+#endif /* __GNUC__ && !NEED_TERMIOS */
 void passphrase_disable_echo(void)
 {
   passphrase_disable_echo1(STDIN_FILENO);
@@ -56,6 +59,9 @@ void passphrase_disable_echo(void)
 /**
  * Undo the actions of `passphrase_disable_echo`
  */
+#if defined(__GNUC__) && !defined(NEED_TERMIOS)
+__attribute__((const))
+#endif /* __GNUC__ && !NEED_TERMIOS */
 void passphrase_reenable_echo(void)
 {
   passphrase_reenable_echo1(STDIN_FILENO);
