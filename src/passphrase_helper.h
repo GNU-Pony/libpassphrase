@@ -379,6 +379,17 @@
 #endif
 
 
+#define xpipe(pair)		\
+  do {				\
+    if (pipe(pair))		\
+      {				\
+	pair[0] = pair[1] = -1;	\
+	goto fail;		\
+      }				\
+  } while (0)
+  
+
+
 
 #endif
 

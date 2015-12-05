@@ -19,7 +19,6 @@
 #include "passphrase.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -67,7 +66,7 @@ int main(int argc, char** argv)
   printf("You entered: %s\n", passphrase);
   
   /* Wipe and free the passphrase */
-  passphrase_wipe(passphrase, strlen(passphrase));
+  passphrase_wipe1(passphrase);
   free(passphrase);
   
   /* Stop hiding user input */

@@ -93,12 +93,19 @@ char* passphrase_read(void);
 char* passphrase_read2(int, int);
 
 /**
- * Forcable write NUL characters to a passphrase
+ * Forcefully write NUL characters to a passphrase
  * 
  * @param  ptr  The password to wipe
  * @param  n    The number of characters to wipe
  */
-void passphrase_wipe(volatile char*, size_t);
+void passphrase_wipe(char*, size_t);
+
+/**
+ * Forcefully write NUL characters to a passphrase
+ * 
+ * @param  ptr  The password to wipe
+ */
+void passphrase_wipe1(char*);
 
 /**
  * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires

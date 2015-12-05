@@ -194,12 +194,16 @@ and is equivalent to
 @code{passphrase_reenable_echo1(STDIN_FILENO)}.
 
 @item  void passphrase_wipe(char*, size_t)
+@itemx void passphrase_wipe1(char*)
 When you are done using passhprase you should
 erase it from the memory before freeing its
 allocation. To do this securtly, call
 @code{passphrase_wipe} with the passphase
 as the first argument and the length of the
 passphrase as the second argument.
+
+@code{passphrase_wipe1} will determine the
+length of the passphrase by itself.
 
 @end table
 
@@ -218,7 +222,6 @@ been disabled.
 #include <passphrase.h>  /* For libpassphrase  */
 #include <stdio.h>       /* For output         */
 #include <stdlib.h>      /* For free           */
-#include <string.h>      /* For strlen         */
 #include <fcntl.h>       /* For open, O_RDONLY */
 #include <unistd.h>      /* For close          */
 
@@ -257,7 +260,7 @@ int main(int argc, char** argv)
   printf("You entered: %s\n", passphrase);
   
   /* Wipe and free the passphrase */
-  passphrase_wipe(passphrase, strlen(passphrase));
+  passphrase_wipe1(passphrase);
   free(passphrase);
   
   /* Stop hiding user input */
@@ -388,6 +391,31 @@ is about to be read.
 This options is not really needed, but not
 using it means that you can get warnings
 in @command{valgrind}.
+
+@item @code{PASSPHRASE_METER}
+When the @code{PASSPHRASE_READ_METER} flag
+is used, and @code{PASSPHRASE_READ_SCREEN_FREE}
+or @code{PASSPHRASE_READ_BELOW_FREE}, use
+@command{passcheck} to evaluate the strenght
+of the passphrase and display a passphrase
+strenght meter. @command{passcheck} will be
+started by the real user, not the effective
+user, and the real group.
+
+It possibly to select another program than
+@command{passcheck} by specifying it setting
+the environment variable @env{LIBPASSPHRASE_METER}.
+@env{LIBPASSPHRASE_METER} will be treated as
+one argument. The selected program must behave
+similar to @command{passcheck}: for each line
+to stdin, it must print a non-negative int
+integer, optinally coloured with one signal
+escape sequence, followed by a new line or
+whitespace; the rest of the is ignored. The
+program must also accept the flag @code{-r},
+telling it not to discard any input.
+
+
 
 @end table
 

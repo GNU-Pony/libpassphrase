@@ -18,26 +18,33 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <termios.h>
 #include <unistd.h>
-#include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/wait.h>
 
 #define PASSPHRASE_USE_DEPRECATED
 #include "passphrase.h"
 #include "passphrase_helper.h"
 
 
-#define START_PASSPHRASE_LIMIT  32
+#ifndef START_PASSPHRASE_LIMIT
+# define START_PASSPHRASE_LIMIT  32
+#endif
+#ifndef DEFAULT_PASSPHRASE_METER
+# define DEFAULT_PASSPHRASE_METER  "passcheck"
+#endif
 
 
 
-
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
-/**
- * The original TTY settings
- */
-static struct termios saved_stty;
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+#ifdef PASSPHRASE_METER
+struct passcheck_state
+{
+  int pipe_rw[2];
+  pid_t pid;
+  int flags;
+};
+#endif /* PASSPHRASE_METER */
 
 
 
@@ -56,6 +63,136 @@ static char* xrealloc(char* array, size_t cur_size, size_t new_size)
 #else /* !PASSPHRASE_REALLOC */
 # define xrealloc(array, _cur_size, new_size)  realloc(array, (new_size) * sizeof(char))
 #endif /* !PASSPHRASE_REALLOC */
+
+
+#ifdef PASSPHRASE_METER
+static void passcheck_start(struct passcheck_state* state, int flags)
+{
+  const char* command;
+  int pipe_rw[2] = { -1, -1 };
+  int exec_rw[2] = { -1, -1 };
+  pid_t pid;
+  ssize_t n;
+  int i = 0;
+  
+  state->pid = -1;
+  state->flags = (flags & PASSPHRASE_READ_NEW) ? (flags ^ PASSPHRASE_READ_NEW) : 0;
+  if (state->flags == 0)
+    return;
+  
+  command = getenv("LIBPASSPHRASE_METER");
+  if (!command || !*command)
+    command = DEFAULT_PASSPHRASE_METER;
+  
+  xpipe(state->pipe_rw);
+  xpipe(pipe_rw);
+  xpipe(exec_rw);
+  /* ‘Their integer values shall be the two lowest available at the time of the pipe() call’ [man 3p pipe]
+   * This guarantees (unless the application is doing something stupid) that the file desriptors
+   * in exec_rw[1] is not stdin, stdout, stderr, or 0 (required by FD_CLOEXEC to take affect), assuming
+   * stdin, stdout, and stderr are 0, 1, and 2, respectively, as specified in `man 3p stdin`. */
+  
+  if (fcntl(exec_rw[1], F_SETFD, FD_CLOEXEC) == -1)
+    goto fail;
+  
+  pid = fork();
+  if (pid == -1)
+    {
+      state->flags = 0;
+      goto fail;
+    }
+  
+  close(exec_rw[!!pid]), exec_rw[!!pid] = -1;
+  close(state->pipe_rw[!!pid]), state->pipe_rw[!!pid] = -1;
+  close(pipe_rw[!pid]), pipe_rw[!pid] = -1;
+  state->pipe_rw[!!pid] = pipe_rw[!!pid], pipe_rw[!!pid] = -1;
+  
+  if (pid == 0)
+    {
+      gid_t gid = getgid(), egid = getegid();
+      uid_t uid = getuid(), euid = geteuid();
+      
+      if ((state->pipe_rw[0] != STDIN_FILENO) && (state->pipe_rw[1] == STDIN_FILENO))
+	{
+	  pipe_rw[1] = dup(state->pipe_rw[1]);
+	  if (pipe_rw[1] == -1)
+	    goto child_fail;
+	  state->pipe_rw[1] = pipe_rw[1], pipe_rw[1] = -1;
+	}
+      for (i = 0; i <= 1; i++)
+	if (state->pipe_rw[i] != i)
+	  {
+	    close(i);
+	    pipe_rw[i] = dup2(state->pipe_rw[i], i);
+	    if (pipe_rw[i] == -1)
+	      goto child_fail;
+	    close(state->pipe_rw[i]), state->pipe_rw[i] = pipe_rw[i];
+	  }
+      
+      if (egid != gid)
+	if (setregid(gid, gid) && gid)
+	  goto child_fail;
+      if (euid != uid)
+	if (setreuid(uid, uid) && uid)
+	  goto child_fail;
+      
+      execlp(command, command, "-r", NULL);
+    child_fail:
+      n = write(exec_rw[1], &i, sizeof(i));
+      _exit(!!n);
+    }
+  
+ rewait:
+  n = read(exec_rw[0], &i, sizeof(i));
+  if ((n < 0) && (errno == EINTR))
+    goto rewait;
+  if (n)
+    {
+    rereap:
+      if ((waitpid(pid, &i, 0) == -1) && (errno == EINTR))
+	goto rereap;
+      goto fail;
+    }
+  
+  close(exec_rw[0]);
+  state->pid = pid;
+  return;
+ fail:
+  if (state->pipe_rw[0] >= 0)  close(state->pipe_rw[0]);
+  if (state->pipe_rw[1] >= 0)  close(state->pipe_rw[1]);
+  if (pipe_rw[0] >= 0)  close(pipe_rw[0]);
+  if (pipe_rw[1] >= 0)  close(pipe_rw[1]);
+  if (exec_rw[0] >= 0)  close(exec_rw[0]);
+  if (exec_rw[1] >= 0)  close(exec_rw[1]);
+  state->pid = -1;
+  state->flags = 0;
+}
+
+static void passcheck_stop(struct passcheck_state* state)
+{
+  int _status;
+  
+  if (state->flags == 0)
+    return;
+  
+  close(state->pipe_rw[0]);
+  close(state->pipe_rw[1]);
+  
+rereap:
+  if ((waitpid(state->pid, &_status, 0) == -1) && (errno == EINTR))
+    goto rereap;
+  
+  /* TODO cleanup */
+}
+
+static void passcheck_update(struct passcheck_state* state, char* passphrase, size_t len)
+{
+  if (state->flags == 0)
+    return;
+  
+  /* TODO */
+}
+#endif /* PASSPHRASE_METER */
 
 
 static int fdgetc(int fd)
@@ -117,17 +254,6 @@ static int get_key(int c, int fdin)
 /**
  * Reads the passphrase from stdin
  * 
- * @return  The passphrase, should be wiped and `free`:ed, `NULL` on error
- */
-char* passphrase_read(void)
-{
-  return passphrase_read2(STDIN_FILENO, 0);
-}
-
-
-/**
- * Reads the passphrase from stdin
- * 
  * @param   fdin   File descriptor for input
  * @param   flags  Settings, a combination of the constants:
  *                 * PASSPHRASE_READ_EXISTING
@@ -157,10 +283,16 @@ char* passphrase_read2(int fdin, int flags)
 #ifdef PASSPHRASE_MOVE
   int cc;
 #endif
-  (void) flags;
+#ifdef PASSPHRASE_METER
+  struct passcheck_state passcheck;
+#endif /* PASSPHRASE_METER */
   
   if (rc == NULL)
     return NULL;
+  
+#ifdef PASSPHRASE_METER
+  passcheck_start(&passcheck, flags);
+#endif /* PASSPHRASE_METER */
   
 #ifdef PASSPHRASE_TEXT
   xprintf("%s%zn", PASSPHRASE_TEXT_EMPTY, &printed_len);
@@ -174,8 +306,16 @@ char* passphrase_read2(int fdin, int flags)
   for (;;)
     {
       c = fdgetc(fdin);
-      if ((c < 0) || (c == '\n'))  break;
-      if (c == 0)                  continue;
+      if ((c < 0) || (c == '\n'))
+	{
+#ifdef PASSPHRASE_METER
+	  passcheck_stop(&passcheck);
+	  xflush();
+#endif /* PASSPHRASE_METER */
+	  break;
+	}
+      if (c == 0)
+	continue;
       
 #if defined(PASSPHRASE_MOVE)
       cc = get_key(c, fdin);
@@ -215,6 +355,11 @@ char* passphrase_read2(int fdin, int flags)
 	    continue;
 	  erase_prev();
 	  print_erase();
+	  
+#ifdef PASSPHRASE_METER
+	  passcheck_update(&passcheck, rc, len);
+#endif /* PASSPHRASE_METER */
+	  
 	  xflush();
 # ifdef DEBUG
 	  goto debug;
@@ -227,6 +372,10 @@ char* passphrase_read2(int fdin, int flags)
 #else /* PASSPHRASE_MOVE, PASSPHRASE_STAR || PASSPHRASE_TEXT */
       append_char();
 #endif /* PASSPHRASE_MOVE, PASSPHRASE_STAR || PASSPHRASE_TEXT */
+      
+#ifdef PASSPHRASE_METER
+      passcheck_update(&passcheck, rc, len);
+#endif /* PASSPHRASE_METER */
       
       xflush();
       if (len == size)
@@ -264,96 +413,20 @@ char* passphrase_read2(int fdin, int flags)
   fprintf(stderr, "\n");
 #endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
   return rc;
-}
-
-
-#ifdef __GNUC__
-# pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wsuggest-attribute=const"
-#  pragma GCC diagnostic ignored "-Wsuggest-attribute=pure"
-#endif
-/* Must positively absolutely not be flagged as possible to optimise away as it depends on configurations,
-   and programs that uses this library must not be forced to be recompiled if the library is reconfigured. */
-
-
-/**
- * Used to make sure that `passphrase_wipe` is not optimised away even within this library
- */
-volatile sig_atomic_t passphrase_wipe_volatile________________ = 1;
-
-/**
- * Forcable write NUL characters to a passphrase
- * 
- * @param  ptr  The password to wipe
- * @param  n    The number of characters to wipe
- */
-#ifdef __GNUC__
-__attribute__((optimize("-O0")))
-#endif
-void passphrase_wipe(volatile char* ptr, size_t n)
-{
-  size_t i;
-  for (i = 0; (i < n) && passphrase_wipe_volatile________________; i++)
-    *(ptr + i) = 0;
-}
-
-
-/**
- * Disable echoing and do anything else to the terminal settnings `passphrase_read` requires
- */
-void passphrase_disable_echo(void)
-{
-  passphrase_disable_echo1(STDIN_FILENO);
-}
-
-
-/**
- * Undo the actions of `passphrase_disable_echo`
- */
-void passphrase_reenable_echo(void)
-{
-  passphrase_reenable_echo1(STDIN_FILENO);
-}
-
-/**
- * Disable echoing and do anything else to the terminal settnings `passphrase_read2` requires
- * 
- * @param  fdin  File descriptor for input
- */
-void passphrase_disable_echo1(int fdin)
-{
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
-  struct termios stty;
   
-  tcgetattr(fdin, &stty);
-  saved_stty = stty;
-  stty.c_lflag &= (tcflag_t)~ECHO;
-# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
-  stty.c_lflag &= (tcflag_t)~ICANON;
-# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
-  tcsetattr(fdin, TCSAFLUSH, &stty);
-#else /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
-  (void) fdin;
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+#ifndef PASSPHRASE_METER
+  (void) flags;
+#endif /* !PASSPHRASE_METER */
 }
 
 
 /**
- * Undo the actions of `passphrase_disable_echo1`
+ * Reads the passphrase from stdin
  * 
- * @param  fdin  File descriptor for input
+ * @return  The passphrase, should be wiped and `free`:ed, `NULL` on error
  */
-void passphrase_reenable_echo1(int fdin)
+char* passphrase_read(void)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
-  tcsetattr(fdin, TCSAFLUSH, &saved_stty);
-#else /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
-  (void) fdin;
-#endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
+  return passphrase_read2(STDIN_FILENO, 0);
 }
-
-
-#ifdef __GNUC__
-# pragma GCC diagnostic pop
-#endif
 

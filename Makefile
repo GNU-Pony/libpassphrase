@@ -29,7 +29,7 @@ LICENSEDIR = $(DATADIR)/licenses
 PKGNAME = libpassphrase
 
 # Options with which to compile the library
-OPTIONS = 
+OPTIONS = PASSPHRASE_METER
 # PASSPHRASE_ECHO:       Do not hide the passphrase
 # PASSPHRASE_STAR:       Use "*" for each character instead of no echo
 # PASSPHRASE_TEXT:       Use "(empty)" and "(not empty)" instead of no echo
@@ -42,6 +42,7 @@ OPTIONS =
 # PASSPHRASE_DEDICATED:  Enable use of dedicated keys
 # DEFAULT_INSERT:        Use insert mode as default
 # PASSPHRASE_INVALID:    Prevent duplication of non-initialised memory
+# PASSPHRASE_METER:      Enable passphrase strength meter.
 
 # Text to use instead of "*"
 PASSPHRASE_STAR_CHAR      = *
@@ -82,6 +83,11 @@ CC_FLAGS = $(CPPFLAGS_) $(CFLAGS_) $(OPTIMISE)
 LD_FLAGS = $(LDFLAGS_) $(CFLAGS_) $(OPTIMISE)
 
 
+# Object files for the library
+OBJ_ = passphrase echoes wipe
+OBJ = $(foreach O,$(OBJ_),obj/$(O).o)
+
+
 
 .PHONY: default
 default: lib info
@@ -107,24 +113,24 @@ a: bin/libpassphrase.a
 .PHONY: test
 test: bin/test
 
-bin/libpassphrase.so: obj/passphrase.o
-	@mkdir -p bin
-	$(CC) $(LD_FLAGS) -shared -Wl,-soname,libpassphrase.so -o "$@" $^ $(LDFLAGS)
-
-bin/libpassphrase.a: obj/passphrase.o
-	@mkdir -p bin
-	ar rcs "$@" $^
-
 bin/test: bin/libpassphrase.so obj/test.o
 	$(CC) $(LD_FLAGS) -Lbin -lpassphrase -o "$@" obj/test.o $(LDFLAGS)
 
-obj/passphrase.o: src/passphrase.c src/*.h
-	@mkdir -p "$(shell dirname "$@")"
-	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
-
-obj/test.o: src/test.c src/passphrase.h
+obj/test.o: src/test.c src/*.h
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CC_FLAGS) -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
+
+bin/libpassphrase.so: $(OBJ)
+	@mkdir -p bin
+	$(CC) $(LD_FLAGS) -shared -Wl,-soname,libpassphrase.so -o "$@" $^ $(LDFLAGS)
+
+bin/libpassphrase.a: $(OBJ)
+	@mkdir -p bin
+	ar rcs "$@" $^
+
+obj/%.o: src/%.c src/*.h
+	@mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CC_FLAGS) -fPIC -o "$@" -c "$<" $(CFLAGS) $(CPPFLAGS)
 
 .PHONY: info
 info: bin/libpassphrase.info
