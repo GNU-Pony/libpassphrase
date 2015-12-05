@@ -307,13 +307,10 @@ static void passcheck_update(struct passcheck_state* state, const char* passphra
     }
   strength_ptr = 0;
   
-  /* TODO locale */
-  if      (value ==   0)  desc = "1;31m"   "Well-known common password";
-  else if (value <= 150)  desc = "31m"     "Extremely week";
-  else if (value <= 200)  desc = "33m"     "Week";
-  else if (value <= 250)  desc = "32m"     "Good";
-  else if (value <= 350)  desc = "1;32m"   "Strong";
-  else                    desc = "1;7;32m" "Perfect";
+  if (0);
+#define X(COND, COLOUR, DESC)  else if (COND)  desc = COLOUR"m"DESC;
+  LIST_PASSPHRASE_STRENGTH_LIMITS(value)
+#undef X
     
   if (state->flags & PASSPHRASE_READ_SCREEN_FREE)
     fprintf(stderr, "\033[s\033[E\033[0K%s \033[%s\033[m (%lli)\033[u", state->label, desc, value);

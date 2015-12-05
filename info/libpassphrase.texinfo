@@ -458,7 +458,35 @@ make OPTIONS=PASSPHRASE_METER  \
      LIBPASSPHRASE_STRENGTH_LABEL="Hope meter:"
 @end example
 
+@item @code{PASSPHRASE_STRENGTH_LIMITS_HEADER}
+A header file to include that defines the macro
+@code{LIST_PASSPHRASE_STRENGTH_LIMITS}. If used,
+this value should either be a system header file and
+enclosed in ASCII angle brackets, or a local header
+file relative to the @file{src/passphrase_helper.h}
+and enclosed in ASCII double quotes.
 
+The @code{LIST_PASSPHRASE_STRENGTH_LIMITS} should
+be define similar to
+@example
+#define LIST_PASSPHRASE_STRENGTH_LIMITS(V)             \
+  X(V == 0,   "1;31",   "Well-known common password")  \
+  X(V <= 150, "31",     "Extremely week")              \
+  X(V <= 200, "33",     "Week")                        \
+  X(V <= 250, "32",     "Good")                        \
+  X(V <= 350, "1;32",   "Strong")                      \
+  X(1,        "1;7;32", "Perfect")
+@end example
+The macro @code{X} is defined when the macro
+[@code{LIST_PASSPHRASE_STRENGTH_LIMITS}] is used.
+Its first argument should evalute to truth if
+@code{V} from @code{LIST_PASSPHRASE_STRENGTH_LIMITS}
+can be designed in the string in the third argument.
+It is important that it [the first argument] always
+evaluates to truth for the last expansion of the macro
+[@code{X}]. The second argument is the Select Graphic
+Rendition parameters --- semi-colon separate -- used
+to colour the description (the third argument).
 @end table
 
 

@@ -20,6 +20,7 @@
 #define PASSPHRASE_HELPER_H
 
 
+
 /* Fix conflicting configurations */
 #if defined(PASSPHRASE_TEXT) && defined(PASSPHRASE_STAR)
 # warning You cannot have both PASSPHRASE_TEXT and PASSPHRASE_STAR
@@ -50,8 +51,22 @@
 #endif
 
 
+/* Strength limits and descriptions */
+#ifdef PASSPHRASE_STRENGTH_LIMITS_HEADER
+# include PASSPHRASE_STRENGTH_LIMITS_HEADER
+#else
+# define LIST_PASSPHRASE_STRENGTH_LIMITS(V)		\
+  X(V == 0,   "1;31",   "Well-known common password")	\
+  X(V <= 150, "31",     "Extremely week")		\
+  X(V <= 200, "33",     "Week")				\
+  X(V <= 250, "32",     "Good")				\
+  X(V <= 350, "1;32",   "Strong")			\
+  X(1,        "1;7;32", "Perfect")
+#endif
 
-/* Control keys. */
+
+
+/* Control keys */
 
 /**
  * Home-key.
@@ -102,7 +117,7 @@
 
 
 
-/* Use by macros below to ensure that the result is not used. */
+/* Use by macros below to ensure that the result is not used */
 #define VOID(...)  do { __VA_ARGS__; } while (0)
 
 

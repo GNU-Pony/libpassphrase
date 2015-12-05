@@ -75,6 +75,9 @@ WARN = -Wall -Wextra -Wdouble-promotion -Wformat=2 -Winit-self -Wmissing-include
 STD = gnu99
 # C preprocessor flags
 CPPFLAGS_ = $(foreach D, $(OPTIONS), -D'$(D)=1') $(foreach D, $(QUOTED_OPTIONS), -D'$(D)="$($(D))"')
+ifdef PASSPHRASE_STRENGTH_LIMITS_HEADER
+CPPFLAGS_ += -D'PASSPHRASE_STRENGTH_LIMITS_HEADER=$(PASSPHRASE_STRENGTH_LIMITS_HEADER)'
+endif
 # C compiling flags
 CFLAGS_ = -std=$(STD) $(WARN)
 # Linking flags
