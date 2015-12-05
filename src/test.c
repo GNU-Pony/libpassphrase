@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   
   /* Read the passphrase */
   passphrase = passphrase_read2(fd, PASSPHRASE_READ_NEW |
-				    PASSPHRASE_READ_SCREEN_FREE);
+				    PASSPHRASE_READ_BELOW_FREE);
   if (passphrase == NULL)
     {
       /* Something went wrong, print what and exit */

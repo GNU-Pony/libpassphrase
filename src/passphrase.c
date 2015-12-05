@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+#include <termios.h>
 #include <sys/wait.h>
 
 #define PASSPHRASE_USE_DEPRECATED
@@ -84,6 +85,9 @@ static void passcheck_start(struct passcheck_state* state, int flags)
   state->flags = (flags & PASSPHRASE_READ_NEW) ? (flags ^ PASSPHRASE_READ_NEW) : 0;
   if (state->flags == 0)
     return;
+  
+  if (state->flags & PASSPHRASE_READ_BELOW_FREE)
+    state->flags &= ~PASSPHRASE_READ_SCREEN_FREE;
   
   command = getenv("LIBPASSPHRASE_METER");
   if (!command || !*command)
@@ -163,6 +167,19 @@ static void passcheck_start(struct passcheck_state* state, int flags)
       goto fail;
     }
   
+  if (state->flags & PASSPHRASE_READ_SCREEN_FREE)
+    {
+      struct termios stty;
+      struct termios saved_stty;
+      tcgetattr(STDERR_FILENO, &stty);
+      saved_stty = stty;
+      stty.c_oflag &= (tcflag_t)~ONLCR;
+      tcsetattr(STDERR_FILENO, TCSAFLUSH, &stty);
+      fprintf(stderr, "\n\033[A");
+      fflush(stderr);
+      tcsetattr(STDERR_FILENO, TCSAFLUSH, &saved_stty);
+    }
+  
   close(exec_rw[0]);
   state->pid = pid;
   return;
@@ -195,7 +212,11 @@ rereap:
   if ((waitpid(state->pid, &_status, 0) == -1) && (errno == EINTR))
     goto rereap;
   
-  /* TODO cleanup */
+  if (state->flags & PASSPHRASE_READ_SCREEN_FREE)
+    fprintf(stderr, "\033[s\033[E\033[0K\033[u");
+  else
+    fprintf(stderr, "\033[B\033[0K\033[A");
+  fflush(stderr);
   
   state->flags = 0;
 }
@@ -280,7 +301,11 @@ static void passcheck_update(struct passcheck_state* state, const char* passphra
     }
   strength_ptr = 0;
   
-  /* TODO */
+  if (state->flags & PASSPHRASE_READ_SCREEN_FREE)
+    fprintf(stderr, "\033[s\033[E\033[0K%s%lli\033[u", /*TODO locale*/"Strength: ", value);
+  else
+    fprintf(stderr, "\033[B\033[s\033[0K%lli\033[u\033[A", value);
+  fflush(stderr);
   
   return;
  fail:
@@ -404,7 +429,6 @@ char* passphrase_read2(int fdin, int flags)
 	{
 #ifdef PASSPHRASE_METER
 	  passcheck_stop(&passcheck);
-	  xflush();
 #endif /* PASSPHRASE_METER */
 	  break;
 	}

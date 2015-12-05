@@ -58,19 +58,19 @@ void passphrase_reenable_echo(void)
  */
 void passphrase_disable_echo1(int fdin)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
+#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
   struct termios stty;
   
   tcgetattr(fdin, &stty);
   saved_stty = stty;
   stty.c_lflag &= (tcflag_t)~ECHO;
-# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE)
+# if defined(PASSPHRASE_STAR) || defined(PASSPHRASE_TEXT) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
   stty.c_lflag &= (tcflag_t)~ICANON;
-# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE */
+# endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE || PASSPHRASE_METER */
   tcsetattr(fdin, TCSAFLUSH, &stty);
-#else /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+#else /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE || PASSPHRASE_METER */
   (void) fdin;
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE || PASSPHRASE_METER */
 }
 
 
@@ -81,10 +81,10 @@ void passphrase_disable_echo1(int fdin)
  */
 void passphrase_reenable_echo1(int fdin)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
+#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
   tcsetattr(fdin, TCSAFLUSH, &saved_stty);
-#else /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
+#else /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE || PASSPHRASE_METER */
   (void) fdin;
-#endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE */
+#endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE || PASSPHRASE_METER */
 }
 
