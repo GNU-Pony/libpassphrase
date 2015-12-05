@@ -58,6 +58,7 @@ int main(int argc, char** argv)
     {
       /* Something went wrong, print what and exit */
       perror(*argv);
+      passphrase_reenable_echo1(fd);
       close(fd);
       return 1;
     }
@@ -70,7 +71,7 @@ int main(int argc, char** argv)
   free(passphrase);
   
   /* Stop hiding user input */
-  passphrase_reenable_echo1(0);
+  passphrase_reenable_echo1(fd);
   
   /* End of program */
   close(fd);
