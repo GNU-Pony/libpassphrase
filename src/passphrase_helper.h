@@ -45,6 +45,9 @@
 #ifndef PASSPHRASE_TEXT_NOT_EMPTY
 # define PASSPHRASE_TEXT_NOT_EMPTY  "(not empty)"
 #endif
+#ifndef PASSPHRASE_TEXT_STRENGTH
+# define PASSPHRASE_TEXT_STRENGTH  "Strength:"
+#endif
 
 
 

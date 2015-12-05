@@ -43,6 +43,7 @@
 #ifdef PASSPHRASE_METER
 struct passcheck_state
 {
+  const char* label;
   int pipe_rw[2];
   pid_t pid;
   int flags;
@@ -92,6 +93,10 @@ static void passcheck_start(struct passcheck_state* state, int flags)
   command = getenv("LIBPASSPHRASE_METER");
   if (!command || !*command)
     command = DEFAULT_PASSPHRASE_METER;
+  
+  state->label = getenv("LIBPASSPHRASE_STRENGTH_LABEL");
+  if (!(state->label) || !*(state->label))
+    state->label = PASSPHRASE_TEXT_STRENGTH;
   
   xpipe(state->pipe_rw);
   xpipe(pipe_rw);
@@ -230,6 +235,7 @@ static void passcheck_update(struct passcheck_state* state, const char* passphra
   void* new;
   char* p;
   unsigned long long int value;
+  const char* desc;
   
   if (state->flags == 0)
     return;
@@ -301,10 +307,18 @@ static void passcheck_update(struct passcheck_state* state, const char* passphra
     }
   strength_ptr = 0;
   
+  /* TODO locale */
+  if      (value ==   0)  desc = "1;31m"   "Well-known common password";
+  else if (value <= 150)  desc = "31m"     "Extremely week";
+  else if (value <= 200)  desc = "33m"     "Week";
+  else if (value <= 250)  desc = "32m"     "Good";
+  else if (value <= 350)  desc = "1;32m"   "Strong";
+  else                    desc = "1;7;32m" "Perfect";
+    
   if (state->flags & PASSPHRASE_READ_SCREEN_FREE)
-    fprintf(stderr, "\033[s\033[E\033[0K%s%lli\033[u", /*TODO locale*/"Strength: ", value);
+    fprintf(stderr, "\033[s\033[E\033[0K%s \033[%s\033[m (%lli)\033[u", state->label, desc, value);
   else
-    fprintf(stderr, "\033[B\033[s\033[0K%lli\033[u\033[A", value);
+    fprintf(stderr, "\033[B\033[s\033[0K\033[%s\033[m (%lli)\033[u\033[A", desc, value);
   fflush(stderr);
   
   return;

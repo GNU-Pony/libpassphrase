@@ -165,6 +165,10 @@ the the screen. This is only used if combined with
 will create make a line below the new current
 line and use that line to draw the passphrase
 strength meter if such capability is available.
+
+The label for the passphrase strength meter can
+be modified by setting the environment variable
+@env{LIBPASSPHRASE_STRENGTH_LABEL}.
 @item PASSPHRASE_READ_BELOW_FREE
 @code{passphrase_read2} may do as it please with
 the line below the current line. This is only used
@@ -414,9 +418,6 @@ escape sequence, followed by a new line or
 whitespace; the rest of the is ignored. The
 program must also accept the flag @code{-r},
 telling it not to discard any input.
-
-
-
 @end table
 
 
@@ -426,7 +427,7 @@ In addition, you may use the follow flags.
 
 @item @code{PASSPHRASE_STAR_CHAR}
 The text to print instead of the character `*' when
-@code{PASSPHRASE_STAR} is used. For example you may run
+@code{PASSPHRASE_STAR} is used. For example, you may run
 @example
 make OPTIONS=PASSPHRASE_STAR  \
      PASSPHRASE_STAR_CHAR="#"
@@ -434,7 +435,7 @@ make OPTIONS=PASSPHRASE_STAR  \
 
 @item @code{PASSPHRASE_TEXT_EMPTY}
 The text to print instead of the `(empty)' when
-@code{PASSPHRASE_TEXT} is used. For example you may run
+@code{PASSPHRASE_TEXT} is used. For example, you may run
 @example
 make OPTIONS=PASSPHRASE_TEXT  \
      PASSPHRASE_TEXT_EMPTY="there is nothing here"
@@ -442,11 +443,21 @@ make OPTIONS=PASSPHRASE_TEXT  \
 
 @item @code{PASSPHRASE_TEXT_NOT_EMPTY}
 The text to print instead of the `(not empty)' when
-@code{PASSPHRASE_TEXT} is used. For example you may run
+@code{PASSPHRASE_TEXT} is used. For example, you may run
 @example
 make OPTIONS=PASSPHRASE_TEXT  \
      PASSPHRASE_TEXT_NOT_EMPTY="there is something here"
 @end example
+
+@item @code{LIBPASSPHRASE_STRENGTH_LABEL}
+The text to print instead of the `Strength:' when
+@code{PASSPHRASE_METER} is used and a new passphrase
+is being entered. For example, you may run
+@example
+make OPTIONS=PASSPHRASE_METER  \
+     LIBPASSPHRASE_STRENGTH_LABEL="Hope meter:"
+@end example
+
 
 @end table
 
