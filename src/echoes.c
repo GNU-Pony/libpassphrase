@@ -25,12 +25,22 @@
 
 
 
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE)
+#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
+# define NEED_TERMIOS
+#else
+# ifdef NEED_TERMIOS
+#  undef NEED_TERMIOS
+# endif
+#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE || PASSPHRASE_METER */
+
+
+
+#if defined(NEED_TERMIOS)
 /**
  * The original TTY settings
  */
 static struct termios saved_stty;
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE */
+#endif /* NEED_TERMIOS */
 
 
 
@@ -56,9 +66,12 @@ void passphrase_reenable_echo(void)
  * 
  * @param  fdin  File descriptor for input
  */
+#if defined(__GNUC__) && !defined(NEED_TERMIOS)
+__attribute__((const))
+#endif /* __GNUC__ && !NEED_TERMIOS */
 void passphrase_disable_echo1(int fdin)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
+#if defined(NEED_TERMIOS)
   struct termios stty;
   
   tcgetattr(fdin, &stty);
@@ -68,9 +81,9 @@ void passphrase_disable_echo1(int fdin)
   stty.c_lflag &= (tcflag_t)~ICANON;
 # endif /* PASSPHRASE_STAR || PASSPHRASE_TEXT || PASSPHRASE_MOVE || PASSPHRASE_METER */
   tcsetattr(fdin, TCSAFLUSH, &stty);
-#else /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE || PASSPHRASE_METER */
+#else /* NEED_TERMIOS */
   (void) fdin;
-#endif /* !PASSPHRASE_ECHO || PASSPHRASE_MOVE || PASSPHRASE_METER */
+#endif /* NEED_TERMIOS */
 }
 
 
@@ -79,12 +92,15 @@ void passphrase_disable_echo1(int fdin)
  * 
  * @param  fdin  File descriptor for input
  */
+#if defined(__GNUC__) && !defined(NEED_TERMIOS)
+__attribute__((const))
+#endif /* __GNUC__ && !NEED_TERMIOS */
 void passphrase_reenable_echo1(int fdin)
 {
-#if !defined(PASSPHRASE_ECHO) || defined(PASSPHRASE_MOVE) || defined(PASSPHRASE_METER)
+#if defined(NEED_TERMIOS)
   tcsetattr(fdin, TCSAFLUSH, &saved_stty);
-#else /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE || PASSPHRASE_METER */
+#else /* NEED_TERMIOS */
   (void) fdin;
-#endif /* !PASSPHRASE_ECHO || !PASSPHRASE_MOVE || PASSPHRASE_METER */
+#endif /* NEED_TERMIOS */
 }
 
